@@ -1,3 +1,5 @@
+// vim: ts=2
+
 #include <climits>
 #include <cstdio>		// Because sprintf
 #include <cstdlib>
@@ -26,6 +28,7 @@ int validateIntegerInput (int MinValue=INT_MIN+1, int MaxValue=INT_MAX,
 
 /* Take a string argument, confirm it is an integer number */
 int validateIntegerInput(char *inputString, int MinValue, int MaxValue);
+double validateFloatInput(char *inputString, int MinValue, int MaxValue);
 
 
 
@@ -128,7 +131,8 @@ int validateIntegerInput(
 		{
  			if ( LIB_DEBUG ) {std::cout << "Numeric value l.110 = " << inputInteger 
 				<< "num_tries = " << number_of_tries << "\n";}
-   		std::cout << "ERROR: Value is outside permitted range.\n";
+   		std::cout << "ERROR: Value " << inputInteger << "is outside permitted range ["
+				<< MinValue << "-" << MaxValue << "]" << std::endl;
 		}
 		else
 		{
@@ -240,7 +244,8 @@ int validateIntegerInput(
 		{
  			if ( LIB_DEBUG ) {std::cout << "Numeric value l.181 = " << inputInteger 
 				<< "num_tries = " << number_of_tries << "\n";}
-   		std::cout << "ERROR: Value " << inputInteger << " is outside permitted range.\n";
+   		std::cout << "ERROR: Value " << inputInteger << " is outside permitted range ["
+				<< MinValue << "-" << MaxValue << "]" << std::endl;
 			return(MinValue-1);
 		}
 		else
@@ -268,7 +273,7 @@ int validateIntegerInput(
  *****************************************************************************/
 #define SPC 32
 #define COM 44
-bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt,std::string Prompt)
+bool getIntegerInput(std::vector <int> *intVector, int expectedSize, int minInt, int maxInt,std::string Prompt)
 {
 	int inputLetter=0;
 	int inputInt=0;
@@ -280,11 +285,18 @@ bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt,std::st
 
 	if (LIB_DEBUG) std::cout << "_validateIntegerInput function three" << std::endl;
 	// Get input from the user
-  if ( Prompt.compare(""))
-  	std::cout << "Enter " << arrayLen 
-		<< " integer values separated by commas or spaces: ";
-	std::getline(std::cin,inputString);
-	inputString += ",";
+	do
+	{
+ 		if ( Prompt.compare("") == 0)
+ 			std::cout << "Enter integers, or <return> to end input:  ";
+		else
+			std::cout << Prompt;
+		std::getline(std::cin,inputLine);
+		inputString += inputLine;
+		inputString += ",";
+	}
+	while (inputLine != "");
+
 	int inputLen = inputString.length();
 
 	// Count the number of words in the input. Word separators can be
@@ -302,13 +314,13 @@ bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt,std::st
 	}
 	if (LIB_DEBUG) std::cout << "Word count is " << wordCount << std::endl;
 
-  if ( wordCount != arrayLen )
+  if ( (expectedSize != 0) && (wordCount != expectedSize ))
 	{
-		std::cout << "ERROR: was expecting " << arrayLen << " array elements, got " 
+		std::cout << "ERROR: was expecting " << expectedSize << " array elements, got " 
 			<< wordCount << std::endl;
 		return(false);
 	}
-
+  
   wordCount=0;
 	// Now check whether each value is an integer in the right range
 	for (inputLetter=0; inputLetter < inputLen; inputLetter++)
@@ -321,7 +333,7 @@ bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt,std::st
 				inputInt = validateIntegerInput(inputWord,minInt,maxInt);
 				if ( inputInt >=minInt )
 				{
-					intArray[wordCount] = inputInt;
+					intVector->push_back(inputInt);
 					wordCount++;
 				}
 			}
@@ -332,22 +344,78 @@ bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt,std::st
 			inputWord[wordLetter++] = inputString[inputLetter];
 		}
 	}
-  if ( wordCount != arrayLen )
+  if ( (expectedSize !=0) && ( wordCount != expectedSize ))
 	{
 		return(false);
 	}
 	else
 	{
+		if (LIB_DEBUG)
+		{
+			std::cout << "library func three is returning: ";
+			for (int j; j< intVector->size();j++)
+				std::cout << intVector->at(j) << ", ";
+
+		}
   	return(true);
 	}
 }
-bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt)
-{
-	if (LIB_DEBUG) std::cout << "_validateIntegerInput function four" << std::endl;
-	return (getIntegerInput(intArray, arrayLen, minInt, maxInt, ""));
-}
 bool getSmallIntegerInput(int *intArray, int arrayLen)
 {
+	std::vector <int> intVector;
+	int goodInts;
+	bool retVal;
+
 	if (LIB_DEBUG) std::cout << "_validateIntegerInput function five" << std::endl;
+
+	retVal = getIntegerInput(&intVector, 0, 1, 100, " ");
+	if ( retVal ){
+		if (intVector.size() < arrayLen ) {
+			goodInts = intVector.size();
+		}
+		else
+		{
+			goodInts = arrayLen;
+		}
+		for (int i=0; i<goodInts; i++)
+		{
+			intArray[i] = intVector[i];
+		}
+	}
+	return(retVal);
+}
+double validateFloatInput(char *inputString, int MinValue, int MaxValue)
+{
+	char decimalPart[2048];
+	char ordinalPart[2048];
+	char fullNumber[4096];
+	int	 decimalVal;
+	int	 ordinalVal;
+  char *dot;
+	int i,j;
+
+  for (i=0; i < 2048; i++) {
+		if (inputString[i] != '.')
+		{
+			ordinalPart[i] = inputString[i];
+		}
+		else {
+			ordinalPart[i] = NULL;
+			break;
+		}
+	}
+	for (j=i; j< strlen(inputString); j++)
+	{
+		decimalPart[j-i] = inputString[j];
+	}
+	decimalPart[j]=NULL;
+
+}
+
+/*
+bool getIntegerInput(int *intArray, int arrayLen, int minInt, int maxInt,std::string Prompt)
+{
+	if (LIB_DEBUG) std::cout << "_validateIntegerInput function six" << std::endl;
 	return (getIntegerInput(intArray, arrayLen, 1, 100, " "));
 }
+*/
