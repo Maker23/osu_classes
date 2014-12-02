@@ -1,5 +1,3 @@
-/* Function prototypes */
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,15 +10,17 @@
 #define DEBUG false
 #endif
 
+/* Function prototypes */
 void	readDataFromFile(Library &centralLibrary);
-void	readBookOneLine(std::string inputLine, Library &centralLibrary);
+void	readOneLine(std::string inputLine, Library &centralLibrary);
 
-//void	readDataFromFile(Library.members &patronList);
 
-/*****************************************************
+/*************************************************************
  * readDataFromFile
- * 
- *****************************************************/
+ *
+ * Open the file(s) (file names are hardcoded here), get one line
+ * at a time, and pass the line to the parsing function
+ *************************************************************/
 void readDataFromFile(Library &centralLibrary)
 {
 	std::string inputLine;
@@ -32,7 +32,7 @@ void readDataFromFile(Library &centralLibrary)
 		while ( ! bookFile.eof() )
 		{
 			getline(bookFile, inputLine);
-			readBookOneLine(inputLine, centralLibrary);
+			readOneLine(inputLine, centralLibrary);
 		}
 	}
 
@@ -41,37 +41,42 @@ void readDataFromFile(Library &centralLibrary)
 		while ( ! patronFile.eof() )
 		{
 			getline(patronFile, inputLine);
-			readBookOneLine(inputLine, centralLibrary);
+			readOneLine(inputLine, centralLibrary);
 		}
 	}
 }
 
-/*****************************************************
- * 
- ****************************************************/
-void readBookOneLine(std::string inputLine, Library &centralLibrary)
+/*************************************************************
+ *  readOneLine
+ *
+ *  Take one line of input, parse it into Words or tokens,
+ *  and do something with the data.  This is all hardcoded
+ *  for expediency.
+ ************************************************************/
+void readOneLine(std::string inputLine, Library &centralLibrary)
 {
-	bool goodData;
+	char delimiter = ':'; 	// The word-separating character in the file
 	char tmpbuf[1024];			// cstring for parsing the line
-	char delimiter = ':'; 	// The word separating character in the file
   std::vector <std::string> Word;	// The input line, separated into words
 	std::string item;				// convert cstrings into std::strings
 
 
 	if(DEBUG) std::cout << "readOneLine\n";
 
+  // Break the line of data into tokens separated by ':'
   std::stringstream ss(inputLine);
   while (ss.getline(tmpbuf, 1024, delimiter)) {
 		if(DEBUG) std::cout << "tmpbuf = " << tmpbuf << "\n";
 		item = tmpbuf;
 		Word.push_back(item);
   }
+
 	if ( Word.size() == 0 )
-		return;
+		return; // No words found
 
   if ( Word.size() == 2 )
 	{
-		// Word should contain:
+		// Word vector should contain:
 		// 	0     1 
 		// 	IDN, Name
 		if (DEBUG) std::cout << "Adding a Patron with " << Word[0] << " " << Word[1] << std::endl;
@@ -80,7 +85,7 @@ void readBookOneLine(std::string inputLine, Library &centralLibrary)
   }
   if ( Word.size() == 3 )
 	{
-		// Word should contain:
+		// Word vector should contain:
 		// 	0     1      2    
 		// 	IDC, Title, Author
 		if (DEBUG) std::cout << "Adding a book with " << Word[0] << " " << Word[1] << " " << Word[2] << std::endl;
