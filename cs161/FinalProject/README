@@ -1,0 +1,73 @@
+
+
+CAVEAT:  The readDataFile  code does not do any error checking - it assumes
+         the data files are correct.
+
+         Data files are ":" separated lines; three fields for books, two
+         for patrons.
+
+
+I've written some functions to help you debug your Library code.  These
+functions will load Book and Member information from data files so you don't
+have to type them in over and over.  Because ain't nobody got time for that!!
+
+
+Before you can use this code you will need
+
+  =  A working implementation of Library::addMember that takes a Patron& argument
+  =  A working implementation of Library::addBook that takes a Book& argument
+
+     Note these two are IN ADDITION the  addBook/addMember functions you
+     have to write for the assignment that don't take any arguments,  but these
+     are dead simple - just push_back the object onto the appropriate vector.
+    
+     You should create prototypes for these in Library.h as well.
+  
+      Library::addBook( Book & book)
+	    {
+		     holdings.push_back(book);
+	    }
+
+  =  To figure out what your patron idNums and book idCodes will look like. Don't use mine!
+
+
+
+INSTRUCTIONS:
+
+1.  Get the code  files "readDataFiles.h"  and  "readDataFiles.cpp", and the
+    data files  "books.data" and "patrons.data", from github.  You can just cut and
+    paste the code if you don't want to use github.  
+
+2.  Change "books.data" and "patrons.data"  to use your version of patron
+    idNums and Book idCodes
+
+3. In menu.cpp, add this line with your other includes
+
+         #include "readDataFiles.h"
+
+4. Also in menu.cpp, declare the standard arguments to main() and add a line to
+   invoke the file-reading code.  The program will invoke the code whenever any
+   argument is given to the program.
+
+         int  main (int argc, char** argv)   // declare the arguments
+         {
+
+            <... your normal declarations ... >
+            Library  myLibrary;  // or whatever you're calling your library
+
+
+            if (argc > 1)
+                readDataFromFile(myLibrary);  // or whatever you called your library
+
+
+            <... your menu loop ...>
+
+5. Now compile your program; the makefile will automatically build readDataFiles.o
+
+6. Run the program with any argument to load the data files, like  
+
+        ./myprogram x
+
+
+You may want to write simple debugging functions like Library::listAllBooks()
+and Library::listAllPatrons(), but you can do that on your own.  ENJOY AND GOOD LUCK.
