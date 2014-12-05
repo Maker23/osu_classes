@@ -1,0 +1,205 @@
+/*
+ *  Author: Shoshana Abrass   abrasss@onid.oregonstate.edu
+ *  Date Created: 2014/11/02
+ *  Last Modification date: 2014/11/09
+ *  Filename: evenOdd.cpp
+ *
+ *  Overview:
+ *		Write a function that takes as parameters an array of ints and the
+ *		size of the array. It should return the (sum of the even values) –
+ *		(sum of the odd values). In main you will need to query the user
+ *		for the size of the array and the values in the array, then call the
+ *		function and display the return value.
+ */
+
+#include <iostream>
+
+#include <climits>
+#include <cstdio>		// Because sprintf
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <time.h>
+
+#define DEBUG false	 // More or less verbose
+
+
+
+// Take one or more lines of input from the user, confirm it is only integer numbers
+int validateIntegerInput (int MinValue=INT_MIN, int MaxValue=INT_MAX, 
+	int MaxNumberOfTries=0, const std::string Prompt="");
+
+// 
+void fillIntArray(int *intArray, int arrayLen);
+int *  getIntegerInput(int &arrayLen);
+
+int main () 
+{
+	int * intArray;
+	char buffer[256];
+	int arrayLen=0;
+
+  std::cout << "Enter a list of integers, separated by commas: ";
+	intArray = getIntegerInput(arrayLen);
+
+	//intArray = new int[n];
+
+  fillIntArray(intArray, arrayLen);
+}
+
+int * getIntegerInput(int &arrayLen)
+{
+	int * intArray;
+	char tmpInt[256];
+	int i=0;
+	std::string inputString;
+  std::getline(std::cin,inputString);
+	std::string tmpString=inputString;
+	int length_of_input = inputString.length();
+
+	std::stringstream ss (inputString);
+	std::stringstream st (inputString);
+	while ( ss.getline(tmpInt,20,','))
+	{
+		arrayLen++;
+	}
+
+	intArray = new int[arrayLen];
+	i=0;
+
+	while ( st.getline(tmpInt,20,','))
+	{
+		std::cout << "tmpInt is " << atoi(tmpInt)<< std::endl;
+		intArray[i] = atoi(tmpInt);
+		i++;
+	}
+  return(intArray);
+}
+/**********************************************
+ * Use a comment block above the function definition
+ *
+ * 		Purpose:
+ * 		Entry:
+ * 		Exit:
+ *
+ *********************************************/
+void fillIntArray(int *intArray, int arrayLen)		// Function names in camelcase
+{
+	std::cout << "This is FunctionOne\n";
+	int i = 0;
+  int * ptr;
+
+	while (i < arrayLen)
+	{
+		//intArray[i] = i+1;
+		std::cout << "Array element " << i << " = " << intArray[i] << std::endl;
+		i++;
+	}
+}
+
+
+/* ***************************************************************************
+ *  validateIntegerInput (MinValue, MaxValue, MaxNumberOfTries, Prompt);
+ *
+ *  Purpose: Confirm that a value grabbed from cin is an integer
+ *  Input: 
+ *  	MinValue: the low end of the valid number range
+ *  	Maxvalue: the high end of the valid number range
+ *  	MaxNumberOfTries: how many tries the user has to enter a valid integer
+ *  	Prompt: what we use to prompt the user with
+ *
+ *  Note that acceptable integers
+ *  	* Can begin with a minus sign (negative)
+ *  	* Can not have any characters other than [0-9] and "."
+ *  		* If "." appears, test the string as a float. It may be a number.00;
+ *  		  this is accepted as an integer by this function (eg, 43.0,  109.00)
+ *
+ * ***************************************************************************/
+
+int validateIntegerInput(
+	int MinValue,
+	int MaxValue,
+	int MaxTries,
+	std::string Prompt)
+{
+  std::string inputString;		// Users's input from the terminal
+	double inputDouble = 0.0; 	// The input string, as a double
+	int  length_of_input = 0;		// Length of the users's input string
+	int  inputInteger = 0;			// The input string, as an integer
+	int  number_of_tries = 0;		// Number of times user has tried to enter data
+	char buffer[256];						// A buffer for creating the prompt string
+	bool notANumber = false;
+
+	if ( Prompt == "" )
+	{
+		sprintf(buffer, "\tEnter an integer between %d and %d: ", MinValue, MaxValue);
+		Prompt = buffer;
+	}
+	
+	do {
+	  number_of_tries++;
+		std::cout << Prompt;
+	  std::getline(std::cin,inputString);
+
+		// Confirm that all the character in the input string are legal 
+		// as part of a number
+		length_of_input = inputString.length();
+		if (length_of_input == 0 ) 
+		{
+			std::cout << "Whoa nellie! no input??" << std::endl;
+		}
+		for (int i=0; i < length_of_input; i++) 
+		{
+			// Digits [0-9], negative signs, and decimal points are ok
+			if(!( ((inputString.at(i) >= 48) && (inputString.at(i) <= 57 ))
+						|| ( i == 0 && inputString.at(i)==45)
+						|| ( inputString.at(i) == 46 )
+					))
+			{
+				// THIS IS NOT A NUMBER
+				// TODO: Support Octal, binary, and Hex
+				notANumber = true;
+			}
+		}
+
+		// Now that we know the string is a number, convert it to a double
+		// Copy the double into an integer; then test if they are equal
+		std::stringstream ss (inputString);
+		ss >> inputDouble;
+		inputInteger = inputDouble;
+		if (DEBUG) std::cout << "inputDouble = " << inputDouble << ", inputInteger = " 
+			<< inputInteger << std::endl;
+
+		if ( notANumber )
+		{
+			std::cout << "ERROR: Part of your input was not a number\n";
+			// TODO 'non-numeric character X found'
+		}
+		else if ( inputDouble != static_cast<double>(inputInteger) )
+		{
+				// Number is a float with a fractional part
+				// TODO: this is subject to the accuracy limits of the double, 
+				// for example, 10.0000000000000001  is equal to 10.
+				// We could instead warn when a decimal point is detected...
+				std::cout << "ERROR: Number contained a decimal value\n";
+		}
+	  else if ( (inputInteger < MinValue ) || (inputInteger > MaxValue) ) 
+		{
+ 			if ( DEBUG ) {std::cout << "Numeric value l.181 = " << inputInteger 
+				<< "num_tries = " << number_of_tries << "\n";}
+   		std::cout << "ERROR: Value is outside permitted range.\n";
+		}
+		else
+		{
+					return(inputInteger);
+
+		}
+		notANumber = false;  // reset
+	}
+	while ( !number_of_tries || (number_of_tries < MaxTries) );
+
+	std::cout << "Sorry, you've reached the maximum number of attempts (" << MaxTries << ")\n";
+	exit(1);	 // Hard to return an error code.
+
+}

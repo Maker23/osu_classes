@@ -1,0 +1,22 @@
+#struct Date {
+#	int Day;
+#	int Month;
+#	int Year;
+#};
+#
+#struct Car {
+#	std::string Make;
+#	std::string Model;
+#	int Year;
+#	Date PurchaseDate;
+#	double PurchasePrice;
+#	bool IsSold;
+#	Date SaleDate;
+#	double SalePrice;
+#};
+#
+Chevy:Nova:1971:2/15:1500:false
+Dodge:Durango:1990:3/6:5000:false
+Ford:Bronco:2001:12/14:7000:false
+Mazda:Miata:2012:7/31:10000:true:8/20:14000
+Pontiac:Firebird:1969:4/22:1000:true:5/1:3500
