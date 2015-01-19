@@ -1,0 +1,57 @@
+
+Reflection - or, Why I Would Never Do This Again
+
+I originally started out with a 2D array as the grid,  bool Grid[80][22].
+However I really don't like the way C++ passes 2D arrays into functions,
+requiring one of the dimensions to be hardcoded:
+
+	void myFunction(int myArray[][22])
+	void myFunction(int* myArrayPtr[][22])
+
+In order to get around this I decided to use a 2D vector instead.
+Although this worked I would never, ever do this again :)  There are other
+ways around the hardcoding issue, which I would try instead (like passing
+a pointer to the array as a void* and then casting it to an array pointer
+inside the function).
+
+The main drawbacks of using a 2D vector are, in ascending order of importance,
+
+1. The semantics of referencing a 2D vector are awkward, eg the declaration:
+		std::vector<std::vector<bool>> Grid
+
+2. As far as I can tell there is no way to both declare and initialize a 2D
+   vector in a single step
+
+3. Vectors are designed to dynamically allocate and deallocate memory.
+   There are useful functions like vector::clear()  or vector::resize(),  but
+   they shuffle memory as a side-effect; when the data size is actually
+   static (in this case the array is always 80x22 elements), allocating and
+   deallocating the memory is a useless and expensive operation.  So I ended
+   up doing a bit of gymnastics to make sure the vector memory was as stable
+   as possible.  This is work that just wouldn't need to be done if one were
+   using two 2D arrays and swapping between them.
+
+A further side effect of using vector features is that loops are almost
+always nested in a particular way, with the 'outer' vectors in the outer
+loop
+
+	for (i=0;  i < vectArray.size() ; i++)
+		for (n=0; n < vectArray[i].size(); n++)  // requires a value for "i"
+			
+Because the grid is printed one row at a time, this looping convention
+requires the rows to be in the outer loop.  Rows represent y values in a
+normally oriented XY plane.  However, the common-sense way of addressing a
+grid point  is  Grid[x][y], implying that columns (and not rows) are in
+the outer loop. I didn't realize this awkwardness until I'd been working
+with the program for quite a while, and unfortunately I didn't have time
+to refactor the code to fix it.  Therefore places in the code that
+consider the user's orientation -- for example, when asking the user where
+to place a pattern -- silently transpose the X and Y axes.  Again, this
+would just not have been an issue had I stuck with nice boring arrays.
+
+Other than that the programming went pretty much to plan.  It turned out
+to be tedious to input large "seed" patterns, like the Gosper Glider Gun,
+and in the discussions I learned that one of the students wrote a library
+to parse patterns from an input file (presumably in a nice human-readable
+format).  That would be a useful extension to this program.  
+
