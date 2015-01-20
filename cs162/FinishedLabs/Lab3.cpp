@@ -12,6 +12,9 @@
  * 		Warn and continue if bad data is found
  * 		If one or both files are empty that's not an error; silently proceed
  * 		Command-line arguments are positional, not flag-defined
+ * 		Decimal numbers with no value after the decimal point are converted to
+ * 			integers.  For example, "13.0" will be treated as "13".
+ * 			This is a design decision and not a bug.
  *
  * Test scenarios:
  *  One or both files does not exist; program exits
@@ -37,15 +40,17 @@
 #define FILE_TWO "infile.two" // must be a file of sorted integers
 #define OUTPUT_FILE "outfile"
 
-void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo, std::ofstream &outputStream);
+void SortTwoIntoOne(std::ifstream &inputStreamOne, 
+	std::ifstream &inputStreamTwo, std::ofstream &outputStream);
 void ReadOneInt(std::ifstream &Input, int ** Value, std::string Filename);
 int validateIntegerInput(const char* inputString, int MinValue, int MaxValue);
 
 /****************************************************************************
  * main()
  *
- * Check the command-line arguments (file names);
- * error and exit if the files are bad.
+ * Check the command-line arguments (file names)
+ *
+ * Error and exit if the files are bad, otherwise run SortTwoIntoOne.
  *
  ***************************************************************************/
 
@@ -64,34 +69,48 @@ int main(int argc, char **argv)
 		//}
 		exit(-1);
 	}
+
+	int errorCount=0;
 	char *InputFileOne = argv[1];
 	char *InputFileTwo = argv[2];
 	char *OutputFile = argv[3];
+
+  // Declare and initialize input streams. Make sure the input streams
+	// are good before we open/truncate the output file.
 	std::ifstream inputStreamOne(InputFileOne);
 	std::ifstream inputStreamTwo(InputFileTwo);
-	std::ofstream outputStream(OutputFile); 
-			// If this were a real program we'd make sure the input files 
-			// were good before we open/truncate the output file.
 
-  
-	/* Exit if any of the files were unopeneable */
+	// Test the input streams
 	if (! inputStreamOne.good()) 
 	{
-		std::cout << "Error: Could not open file \""<< InputFileOne << "\" for read; exiting..."<<std::endl;
-		exit(-1);
+		std::cout << "Error: Could not open file \""<< InputFileOne << "\" for read." <<std::endl;
+		errorCount++;
 	}
 	if (! inputStreamTwo.good()) 
 	{
-		std::cout << "Error: Could not open file \""<< InputFileTwo <<"\" for read; exiting..."<<std::endl;
+		std::cout << "Error: Could not open file \""<< InputFileTwo <<"\" for read."<<std::endl;
+		errorCount++;
+	}
+	if (errorCount > 0 )
+	{
+		std::cout << "exiting...." << std::endl;
 		exit(-1);
 	}
+
+  // Declare, initialize and test the output stream.
+	std::ofstream outputStream(OutputFile); 
 	if (! outputStream.good()) 
 	{
-		std::cout << "Error: Could not open file \""<< InputFileTwo <<"\" for write; exiting..."<<std::endl;
+		std::cout << "Error: Could not open file \""<< OutputFile <<"\" for write."<<std::endl;
 		exit(-1);
 	}
+
+
+	// All good?  Run the useful function!
 	SortTwoIntoOne(inputStreamOne, inputStreamTwo, outputStream);
+
 }
+
 /****************************************************************************
  *
  *
@@ -99,7 +118,6 @@ int main(int argc, char **argv)
  *
  *
  ***************************************************************************/
-
 void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo, std::ofstream &outputStream)
 {
 	char *InputFileOne = "foo";
@@ -221,7 +239,7 @@ void ReadOneInt(std::ifstream &Input, int ** Value, std::string Filename)
 		}
 		else 
 		{
-			if (DEBUG) std::cout << "I think I'm seeting the pointr to Null" << std::endl;
+			if (DEBUG) std::cout << "I think I'm setting the pointr to Null" << std::endl;
 			*Value = NULL;
 			return;
 		}
