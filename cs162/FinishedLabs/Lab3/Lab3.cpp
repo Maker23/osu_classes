@@ -1,5 +1,6 @@
 /* vim:ts=2
  *
+ * TODO:  Move testing to a separate document; Get rid of command-line arguments
  * CS162, Lab3:  File I/O
  *
  * Merge two files that each contains sorted integers
@@ -9,6 +10,8 @@
  *
  * Design choices:
  * 		Silently supress duplicates
+ * 		Silently supress blank lines 
+ * 		Output numbers are CRLF separated even if input is not
  * 		Warn and continue if bad data is found
  * 		If one or both files are empty that's not an error; silently proceed
  * 		Command-line arguments are positional, not flag-defined
@@ -17,15 +20,18 @@
  * 			This is a design decision and not a bug.
  *
  * Test scenarios:
- *  One or both files does not exist; program exits
+ *  One or both files does not exist (program exits)
+ *  File number ranges do not overlap, eg, one file is all lower than the other
  *  One or both files exists but not permitted to read; program exits
- *  One or both files exist but are empty
+ *  One or both files exist but are empty; no error
  *  One file is much shorter than the other
- *  Numbers are both space delimited and CRLF delimited
- *  Bad (non-integer) values exist (strings, decimal numbers)
+ *  Input Numbers are either space delimited and CRLF delimited; both work
+ *  Bad (non-integer) values exist (strings, decimal numbers); warn and skip
  *  Duplicate numbers occur in the same file
  *  Duplicate numbers are found in fileOne and fileTwo
  *  Swap input files one and two, output should be the same
+ *  Negative numbers
+ *  Very large positive numbers (< INT_MAX)
  *
  */
 #include <fstream> 	// File I/O
@@ -77,8 +83,8 @@ int main(int argc, char **argv)
 
   // Declare and initialize input streams. Make sure the input streams
 	// are good before we open/truncate the output file.
-	std::ifstream inputStreamOne(InputFileOne);
-	std::ifstream inputStreamTwo(InputFileTwo);
+	std::ifstream inputStreamOne(InputFileOne); // implicitly opens the input file
+	std::ifstream inputStreamTwo(InputFileTwo); // ditto
 
 	// Test the input streams
 	if (! inputStreamOne.good()) 
@@ -98,16 +104,18 @@ int main(int argc, char **argv)
 	}
 
   // Declare, initialize and test the output stream.
-	std::ofstream outputStream(OutputFile); 
+	std::ofstream outputStream(OutputFile);  // implicitly opens the output file
 	if (! outputStream.good()) 
 	{
 		std::cout << "Error: Could not open file \""<< OutputFile <<"\" for write."<<std::endl;
 		exit(-1);
 	}
 
-
 	// All good?  Run the useful function!
 	SortTwoIntoOne(inputStreamOne, inputStreamTwo, outputStream);
+	inputStreamOne.close();
+	inputStreamTwo.close();
+	outputStream.close();
 
 }
 
@@ -120,9 +128,10 @@ int main(int argc, char **argv)
  ***************************************************************************/
 void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo, std::ofstream &outputStream)
 {
-	char *InputFileOne = "foo";
-	char *InputFileTwo = "bar";
-	char *OutputFile = "baz";
+	bool uniq = false; // Set to true to uppress duplicates
+	char InputFileOne[] = "foo";
+	char InputFileTwo[] = "bar";
+	char OutputFile[] = "baz";
 	int *inputOne = new (int);
 	int *inputTwo = new (int);
 	int *prevInputOne = new int (INT_MIN); 
@@ -138,7 +147,8 @@ void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo
 		{
 			if (DEBUG) std::cout << "Writing inputOne, recycling One" 
 				<< "	" << *inputOne << std::endl;
-			if (*inputOne != *prevInputOne)
+			if ( (!uniq )
+				|| (uniq && (*inputOne != *prevInputOne)))
 			{
 				outputStream << *inputOne << std::endl;
 				*prevInputOne = *inputOne;
@@ -149,7 +159,8 @@ void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo
 		{
 			if (DEBUG) std::cout << "Writing inputTwo, recycling Two" 
 				<< "	" << *inputTwo << std::endl;
-			if (*inputTwo != *prevInputTwo)
+			if ( (!uniq )
+				|| (uniq && (*inputTwo != *prevInputTwo)))
 			{
 				outputStream << *inputTwo << std::endl;
 				*prevInputTwo = *inputTwo;
@@ -161,7 +172,11 @@ void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo
 			if (DEBUG) std::cout << "Writing inputOne, recycling both" 
 				<< "	" << *inputOne << std::endl
 				<< "	" << *inputTwo << std::endl;
-			if ((*inputOne != *prevInputOne)
+			if  (!uniq )
+			{
+				outputStream << *inputOne << std::endl << *inputTwo << std::endl;
+			}
+		  else if ( (*inputOne != *prevInputOne)
 			   &&(*inputTwo != *prevInputTwo))
 			{
 				outputStream << *inputOne << std::endl;

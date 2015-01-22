@@ -1,0 +1,24 @@
+Design choices. These are not bugs:
+
+	Silently supress blank lines 
+ 	Output numbers are CRLF separated even if input is not
+ 	Warn and continue if bad data is found
+ 	If one or both files are empty that's not an error; silently proceed
+ 	Command-line arguments are positional, not flag-defined
+ 	Decimal numbers with no value after the decimal point are converted to
+ 		integers.  For example, "13.0" will be treated as "13".
+ 		This is a design decision and not a bug.
+
+Test scenarios:
+  One or both files does not exist (program exits)
+  File number ranges do not overlap, eg, one file is all lower than the other
+  One or both files exists but not permitted to read; program exits
+  One or both files exist but are empty; no error
+  One file is much shorter than the other
+  Input Numbers are either space delimited and CRLF delimited; both work
+  Bad (non-integer) values exist (strings, decimal numbers); warn and skip
+  Duplicate numbers occur in the same file
+  Duplicate numbers are found in fileOne and fileTwo
+  Swap input files one and two, output should be the same
+  Negative numbers
+  Very large positive numbers (< INT_MAX)
