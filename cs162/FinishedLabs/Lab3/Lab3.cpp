@@ -1,7 +1,9 @@
 /* vim:ts=2
  *
- * TODO:  Move testing to a separate document; Get rid of command-line arguments
- * CS162, Lab3:  File I/O
+ * 			CS162, Lab3:  File I/O
+ * 			Shoshana Abrass
+ * 			abrasss@onid.oregonstate.edu
+ * 			Jan 25, 2015
  *
  * Merge two files that each contains sorted integers
  * Write the results to a third file
@@ -9,17 +11,17 @@
  * Input files should be read one line at a time.
  *
  * Design choices:
- * 		Silently supress duplicates
- * 		Silently supress blank lines 
- * 		Output numbers are CRLF separated even if input is not
- * 		Warn and continue if bad data is found
- * 		If one or both files are empty that's not an error; silently proceed
- * 		Command-line arguments are positional, not flag-defined
- * 		Decimal numbers with no value after the decimal point are converted to
- * 			integers.  For example, "13.0" will be treated as "13".
- * 			This is a design decision and not a bug.
+ * 	Silently supress duplicates
+ * 	Silently supress blank lines 
+ * 	Output numbers are CRLF separated even if input is not
+ * 	Warn and continue if bad data is found
+ * 	If one or both files are empty that's not an error; silently proceed
+ * 	Command-line arguments are positional, not flag-defined
+ * 	Decimal numbers with no value after the decimal point are converted to
+ * 		integers.  For example, "13.0" will be treated as "13".
+ * 		This is a design decision and not a bug.
  *
- * Test scenarios:
+ * Tested scenarios:
  *  One or both files does not exist (program exits)
  *  File number ranges do not overlap, eg, one file is all lower than the other
  *  One or both files exists but not permitted to read; program exits
@@ -42,8 +44,8 @@
 
 #define DEBUG false
 
-#define FILE_ONE "infile.one" // must be a file of sorted integers
-#define FILE_TWO "infile.two" // must be a file of sorted integers
+#define INPUT_FILE_ONE "infile.one" // must be a file of sorted integers
+#define INPUT_FILE_TWO "infile.two" // must be a file of sorted integers
 #define OUTPUT_FILE "outfile"
 
 void SortTwoIntoOne(std::ifstream &inputStreamOne, 
@@ -62,39 +64,27 @@ int validateIntegerInput(const char* inputString, int MinValue, int MaxValue);
 
 int main(int argc, char **argv) 
 {
-	if ( argc < 4 ) 
-	{
-		std::cout << "Too few arguments (" << argc << ")" <<std::endl;
-		std::cout << "USAGE:  <print usage message here>" << std::endl;
-		//if (DEBUG) 
-		//{
-			for (int i=0;i<argc;i++)
-			{
-				std::cout << "Arg #" << i <<" = " << argv[i] << std::endl;
-			}
-		//}
-		exit(-1);
-	}
+	/* We had command-line argument parsing here, but we got rid of that */
+	/* See revision history at 
+	 * https://github.com/Maker23/osu_classes/blob/6d30bb6dcb84087339e7bc7dbc73b0d7163cb523/cs162/FinishedLabs/Lab3/Lab3.cpp 
+	 */
 
+
+  // Declare and initialize input streams. 
+	std::ifstream inputStreamOne(INPUT_FILE_ONE); // implicitly opens the input file
+	std::ifstream inputStreamTwo(INPUT_FILE_TWO); // ditto
 	int errorCount=0;
-	char *InputFileOne = argv[1];
-	char *InputFileTwo = argv[2];
-	char *OutputFile = argv[3];
 
-  // Declare and initialize input streams. Make sure the input streams
-	// are good before we open/truncate the output file.
-	std::ifstream inputStreamOne(InputFileOne); // implicitly opens the input file
-	std::ifstream inputStreamTwo(InputFileTwo); // ditto
-
-	// Test the input streams
+	// Test both input streams, make sure they're good 
+	// before we open (and truncate) the output file.
 	if (! inputStreamOne.good()) 
 	{
-		std::cout << "Error: Could not open file \""<< InputFileOne << "\" for read." <<std::endl;
+		std::cout << "Error: Could not open file \""<< INPUT_FILE_ONE << "\" for read." <<std::endl;
 		errorCount++;
 	}
 	if (! inputStreamTwo.good()) 
 	{
-		std::cout << "Error: Could not open file \""<< InputFileTwo <<"\" for read."<<std::endl;
+		std::cout << "Error: Could not open file \""<< INPUT_FILE_TWO <<"\" for read."<<std::endl;
 		errorCount++;
 	}
 	if (errorCount > 0 )
@@ -104,15 +94,17 @@ int main(int argc, char **argv)
 	}
 
   // Declare, initialize and test the output stream.
-	std::ofstream outputStream(OutputFile);  // implicitly opens the output file
+	std::ofstream outputStream(OUTPUT_FILE);  // implicitly opens the output file
 	if (! outputStream.good()) 
 	{
-		std::cout << "Error: Could not open file \""<< OutputFile <<"\" for write."<<std::endl;
+		std::cout << "Error: Could not open file \""<< OUTPUT_FILE <<"\" for write."<<std::endl;
 		exit(-1);
 	}
 
 	// All good?  Run the useful function!
 	SortTwoIntoOne(inputStreamOne, inputStreamTwo, outputStream);
+
+	// Close the files. Extraneously.
 	inputStreamOne.close();
 	inputStreamTwo.close();
 	outputStream.close();
@@ -176,9 +168,10 @@ void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo
 			{
 				outputStream << *inputOne << std::endl << *inputTwo << std::endl;
 			}
-		  else if ( (*inputOne != *prevInputOne)
+		  else if ( (*inputOne != *prevInputOne) 
 			   &&(*inputTwo != *prevInputTwo))
 			{
+				// Only if uniq is true
 				outputStream << *inputOne << std::endl;
 				*prevInputOne = *inputOne;
 				*prevInputTwo = *inputTwo;
@@ -304,7 +297,6 @@ int validateIntegerInput(
 	int  number_of_tries = 0;		// Number of times user has tried to enter data
 	char buffer[256];						// A buffer for creating the prompt string
 	bool notANumber = false;
-	//std::string inputCopy;
 
 	if (DEBUG) std::cout << "_validateIntegerInput function two" << std::endl;
 	
