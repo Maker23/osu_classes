@@ -112,26 +112,28 @@ int main(int argc, char **argv)
 }
 
 /****************************************************************************
+ * SortTwoIntoOne (inputStreamOne, inputStreamTwo, outputStream)
  *
+ * Arguments:
+ * 	inputStreamOne, inputStreamTwo:  std::ifstream
+ * 	outputStream:  std::ofstream
  *
- *
- *
+ * This function implements the sorting logic required by the assignment.
+ * One integer at a time is read from the input files, and the results
+ * are written to the outputStream in sorted order, with no buffering
  *
  ***************************************************************************/
 void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo, std::ofstream &outputStream)
 {
-	bool uniq = false; // Set to true to uppress duplicates
-	char InputFileOne[] = "foo";
-	char InputFileTwo[] = "bar";
-	char OutputFile[] = "baz";
+	bool uniq = true; // set to false to allow duplicate integers
 	int *inputOne = new (int);
 	int *inputTwo = new (int);
 	int *prevInputOne = new int (INT_MIN); 
 	int *prevInputTwo = new int (INT_MIN);
 
 
-	ReadOneInt(inputStreamOne, &inputOne, InputFileOne);
-	ReadOneInt(inputStreamTwo, &inputTwo, InputFileTwo);
+	ReadOneInt(inputStreamOne, &inputOne, INPUT_FILE_ONE);
+	ReadOneInt(inputStreamTwo, &inputTwo, INPUT_FILE_TWO);
 	while ( inputOne && inputTwo )
 	{
 		// Good values from both files
@@ -139,85 +141,101 @@ void SortTwoIntoOne(std::ifstream &inputStreamOne, std::ifstream &inputStreamTwo
 		{
 			if (DEBUG) std::cout << "Writing inputOne, recycling One" 
 				<< "	" << *inputOne << std::endl;
-			if ( (!uniq )
-				|| (uniq && (*inputOne != *prevInputOne)))
+			if ( (!uniq)
+			 	|| (uniq && (*inputOne != *prevInputOne)))
 			{
 				outputStream << *inputOne << std::endl;
 				*prevInputOne = *inputOne;
 			}
-			ReadOneInt(inputStreamOne, &inputOne, InputFileOne);
+			ReadOneInt(inputStreamOne, &inputOne, INPUT_FILE_ONE);
 		}
 		else if (*inputOne > *inputTwo)
 		{
 			if (DEBUG) std::cout << "Writing inputTwo, recycling Two" 
 				<< "	" << *inputTwo << std::endl;
-			if ( (!uniq )
-				|| (uniq && (*inputTwo != *prevInputTwo)))
+			if ( (!uniq)
+			 	|| (uniq && (*inputTwo != *prevInputTwo)))
 			{
 				outputStream << *inputTwo << std::endl;
 				*prevInputTwo = *inputTwo;
 			}
-			ReadOneInt(inputStreamTwo, &inputTwo, InputFileTwo);
+			ReadOneInt(inputStreamTwo, &inputTwo, INPUT_FILE_TWO);
 		}
 		else if (*inputOne == *inputTwo) 
 		{
 			if (DEBUG) std::cout << "Writing inputOne, recycling both" 
 				<< "	" << *inputOne << std::endl
 				<< "	" << *inputTwo << std::endl;
-			if  (!uniq )
+			if (! uniq)
 			{
 				outputStream << *inputOne << std::endl << *inputTwo << std::endl;
 			}
-		  else if ( (*inputOne != *prevInputOne) 
-			   &&(*inputTwo != *prevInputTwo))
+			else if (( *inputOne != *prevInputOne) && (*inputTwo != *prevInputTwo))
 			{
-				// Only if uniq is true
+				// uniq is true
 				outputStream << *inputOne << std::endl;
 				*prevInputOne = *inputOne;
 				*prevInputTwo = *inputTwo;
 			}
-			ReadOneInt(inputStreamOne, &inputOne, InputFileOne);
-			ReadOneInt(inputStreamTwo, &inputTwo, InputFileTwo);
+			ReadOneInt(inputStreamOne, &inputOne, INPUT_FILE_ONE);
+			ReadOneInt(inputStreamTwo, &inputTwo, INPUT_FILE_TWO);
 		}
 	}
-	// One or both file descriptors are NULL
+	// Now one of both files are empty of integers
+
+	// Both files are finished; nothing more to do
   if ( ! (inputOne || inputTwo) ) 
-	{ // Nothing more to do here :)
+	{ 
 	}
+	// One file is finished
 	else if ( ! inputOne )
 	{
-		// InputFileOne has no more valid numbers in it
+		// InputFileOne has no more valid numbers in it, just speed through File Two
 		while ( inputTwo)
 		{
-			if (DEBUG) std::cout << "Writing inputTwo, recycling Two" 
-				<< "	" << *inputTwo << std::endl;
 			outputStream << *inputTwo << std::endl;
-			ReadOneInt(inputStreamTwo, &inputTwo, InputFileTwo);
+			ReadOneInt(inputStreamTwo, &inputTwo, INPUT_FILE_TWO);
 		}
 	}
 	else if ( ! inputTwo )
 	{
-		// InputFileTwo has no more valid numbers in it
+		// InputFileTwo has no more valid numbers in it, just speed through File One
 		while ( inputOne)
 		{
-			if (DEBUG) std::cout << "Writing inputOne, recycling One" 
-				<< "	" << *inputOne << std::endl;
 			outputStream << *inputOne << std::endl;
-			ReadOneInt(inputStreamOne, &inputOne, InputFileOne);
+			ReadOneInt(inputStreamOne, &inputOne, INPUT_FILE_ONE);
 		}
 	}
 }
 
+/****************************************************************************
+ * ReadOneInt (Input,  Value, Filename)
+ *
+ * Arguments: 
+ * 	Input: is a reference to an input filestream. 
+ * 		If it isn't good() the function exits.
+ * 	Filename is the string name associated with Input, 
+ * 		used for printing better error messages
+ *
+ * This function will perform repeated reads of whitespace-separated text
+ * from the Input stream until a valid integer, or eof(), is found.
+ *
+ * Value is a pointer to a int*.  If this function succeeds in reading
+ * an integer from the Input stream then **Value will be set to that integer.
+ * Otherwise *Value will be set to NULL.  We use an int* because there's no
+ * "illegal" value for testing an integer, but there is for a pointer.
+ *
+ ***************************************************************************/
 void ReadOneInt(std::ifstream &Input, int ** Value, std::string Filename)
 {
-	if (DEBUG) std::cout << "Entering ReadOneWord" << std::endl;
+	if (DEBUG) std::cout << "Entering ReadOneInt" << std::endl;
 
 	std::string Line;
 	int tmpInt;
 
 	if ( Input.eof() )
 	{
-		if (DEBUG) std::cout << "I think I'm setting the pointr to Null" << std::endl;
+		if (DEBUG) std::cout << "Setting the pointer to Null to indicate EOF" << std::endl;
 		*Value = NULL;
 		return;
 	}
@@ -229,7 +247,8 @@ void ReadOneInt(std::ifstream &Input, int ** Value, std::string Filename)
 			tmpInt = validateIntegerInput(Line.c_str(), INT_MIN + 1, INT_MAX);
 			if (tmpInt == INT_MIN)
 			{
-				// Skip silently unless we're debugging
+				// Skip silently unless we're debugging; 
+				// a warning will be printed by the validate function
 				if (DEBUG) 
 				{
 					std::cout << "Warning: bad input found in file " << Filename << std::endl;
@@ -255,11 +274,11 @@ void ReadOneInt(std::ifstream &Input, int ** Value, std::string Filename)
 	else
 	{
 		std::cout << "ERROR: Can't read input from "<< Filename <<std::endl;
-		Value = NULL;
+		*Value = NULL;
 		return;
 	}
 
-	if (DEBUG) std::cout << "End of ReadOneWord - we should never get here" << std::endl;
+	if (DEBUG) std::cout << "End of ReadOneInt - we should never get here" << std::endl;
 }
 
 #define ZERO 48
@@ -272,7 +291,7 @@ void ReadOneInt(std::ifstream &Input, int ** Value, std::string Filename)
  *  validateIntegerInput (InputString, MinValue, MaxValue);
  *
  *  Purpose: Confirm that a string is a valid integer number
- *  Input: 
+ *  Arguments: 
  *  	InputString:  char* c-string
  *  	MinValue: the low end of the valid number range
  *  	Maxvalue: the high end of the valid number range

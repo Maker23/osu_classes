@@ -21,16 +21,16 @@ test: $(PROJECT_NAME)
 	$(PROJECT_NAME) $(INPUT_DATA) $(OUTPUT_FILE)
 
 zip: 
-	zip $(ZIPFILE) $(SOURCES) $(INPUT_DATA) makefile
+	zip $(ZIPFILE) $(SOURCES) $(INPUT_DATA) makefile TestPlan
 
 $(PROJECT_NAME):$(SOURCES) $(INPUT_DATA)
 	$(CC) $(CFLAGS) -o $@ $<
 
 infile.one:
-	/bin/echo -e '3\n4\n5\n6\n6\n6 7 8\n9' > infile.one
+	/bin/echo -e '3\n4\n5\n6\n6\n6 7 8\n92543768' > infile.one
 
 infile.two:
-	/bin/echo -e "-1\nbad\n6\n\n10\n11\n13.0" > infile.two
+	/bin/echo -e "-2.3\n-1\nbad\n6\n\n7\n10\n11\n13.0" > infile.two
 
 %:%.cpp
 	$(CC) $(CFLAGS) -o $@ $<
