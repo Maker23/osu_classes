@@ -1,0 +1,14 @@
+//
+// Use backslash as the field delimiter.
+// Note to self: Don't buy products with '\' in the name :)
+//
+# Quantity \ Name \ Unit \ UnitPrice
+1\Cheerios\box\9.99
+4\Progresso Chicken and wild rice\can\2.99
+1\Semifreddi sweet batard\loaf\4.95
+1\Peet's Yunnan tea\can\12.99
+1\Clover Organic 1%\carton\3.59
+1\Clover Organic salted butter\box\5.99
+1\Ben & Jerry's Phish Food\pint\6.99
+1\OreIda frozen crinkle fries\bag\4.59
+1\"Test$%&@* ALL the() things!!\each\100.01
