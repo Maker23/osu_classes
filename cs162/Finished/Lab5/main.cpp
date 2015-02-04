@@ -2,48 +2,76 @@
 #include <fstream>
 #include <sstream>
 
-#define DEBUG false
+#define DEBUG true
 #include "Filter.h"
 
+void resetStream(std::ifstream &inputStream);
+
 int main() {
-
 	char inputChar;
-  std::string inputWord;
-	std::stringstream ss;
+  std::string inputFile = "testInput.txt";
+  std::string plainCopyFile = "Output_plain.txt";
+  std::string uppercaseCopyFile = "Output_uppercase.txt";
+  std::string encryptCopyFile = "Output_encrypt.txt";
+  std::string cipherCopyFile = "Output_cipher.txt";
 
+	std::ofstream outputStream;
 
+  std::ifstream inputStream(inputFile);
+	if (!inputStream.good() )
+	{
+		std::cout << "Could not open " << inputFile << "; exiting..." << std::endl;
+		return(1);
+	}
+	else
+	{
+		std::cout << "Reading from " << inputFile << std::endl;
+	}
+
+  // Declare many filter instances
 	Filter myFilter;
-	Cipher myCipher(13);
-	Encrypt myEncrypt(39);
 	Uppercase myUppercase;
- 
-	std::cout << "Enter a line of text: ";
-  getline (std::cin, inputWord);
+	Encrypt myEncrypt(39); 
+	Cipher myCipher(13);
 
-	std::cout << "Plaintext = ";
-	ss << inputWord;
-	myFilter.doFilter(ss, std::cout);
-	std::cout << std::endl;
-	ss.clear();
+	outputStream.open(plainCopyFile);
+	if ( outputStream.good() )
+	{
+		resetStream(inputStream);
+		myFilter.doFilter(inputStream, outputStream);
+		outputStream.close();
+	}
 
-	std::cout << "Encrypt = ";
-	ss << inputWord;
-	myEncrypt.doFilter(ss, std::cout);
-	std::cout << std::endl;
-	ss.clear();
+	outputStream.open(uppercaseCopyFile);
+	if ( outputStream.good() )
+	{
+		resetStream(inputStream);
+		myUppercase.doFilter(inputStream, outputStream);
+		outputStream.close();
+	}
 
-	std::cout << "Uppercase = ";
-	ss << inputWord;
-	myUppercase.doFilter(ss, std::cout);
-	std::cout << std::endl;
-	ss.clear();
+	outputStream.open(encryptCopyFile);
+	if ( outputStream.good() )
+	{
+		resetStream(inputStream);
+		myEncrypt.doFilter(inputStream, outputStream);
+		outputStream.close();
+	}
 
-	std::cout << "Cipher = ";
-	ss << inputWord;
-	myCipher.doFilter(ss, std::cout);
-	std::cout << std::endl;
-	ss.clear();
+	outputStream.open(cipherCopyFile);
+	if ( outputStream.good() )
+	{
+		resetStream(inputStream);
+		myCipher.doFilter(inputStream, outputStream);
+		outputStream.close();
+	}
 
 
+}
+
+void resetStream(std::ifstream &inputStream)
+{
+	inputStream.clear();
+	inputStream.seekg(0,inputStream.beg);
 }
 
