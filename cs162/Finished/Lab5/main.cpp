@@ -5,6 +5,36 @@
 #define DEBUG true
 #include "Filter.h"
 
+/* ********************************************************************** 
+ *
+ * CS162 Lab5. Shoshana Abrass <abrasss@onid.oregonstate.edu>  2/8/2015
+ *
+ * The supplied test file should test the various edge cases for
+ * character encryption. 
+ *
+ * This program reads in the test input file and runs all four of the
+ * assignment's filters, writing each to a separate output file.
+ * "Cipher" is encrypted, uppercase, and broken into 5-letter blocks.
+ *
+ *   Filter          Output file
+ *   ----------      --------------------
+ *   <none>          Output_plain.txt
+ *   Upper case      Output_uppercase.txt
+ *   Encrypt         Output_encrypt.txt
+ *   Cipher          Output_cipher.txt  
+ *
+ *
+ * Design decisions that were made:
+ *   When encrypting, leave non-letter character untransformed
+ *   When ciphering, skip (remove) non-letter characters
+ *
+ *
+ * TODO: Should Cipher handle numbers as well as letters?
+ *       I don't think it's critical, messages to be encoded 
+ *       could simply spell out numbers ("three point one four one")
+ *
+ */
+
 void resetStream(std::ifstream &inputStream);
 
 int main() {
