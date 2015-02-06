@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <typeinfo>
 
 #include "Dice.h"
 #include "Character.h"
@@ -11,7 +12,8 @@ int main()
 	Dice myDice(2,6);
 	//Barbarian myBarb ("Red Sonja", 2, 6, 2, 4, 0, 22);
 	Barbarian myBarb ("Red Sonja");
-	Shadow myShadow ("The Shadow", 2, 6, 1, 4, 0, 20);
+	//Shadow myShadow ("The Shadow", 2, 6, 1, 4, 0, 20);
+	Shadow myShadow ("The Shadow");
 
 	Combat (myBarb, myShadow);
 
@@ -35,6 +37,9 @@ void Combat (Character & PlayerOne, Character & PlayerTwo)
 	int defend, attack, damage;
 
 	int i=0;
+
+	Character PlayerOne = Test;
+
 
 	do
 	{

@@ -6,15 +6,15 @@ class Character{
 
 protected:
 	std::string Name;
-	Dice Attack;
-	Dice Defend;
+	Dice AttackDice;
+	Dice DefendDice;
 	int Armor;
 	int Strength;
+	float AchillesFactor;
 
 public:
 	Character() {};
 	Character(std::string Name);
-	Character(std::string Name, int DAq, int DAs, int DDq, int DDs, int Ar, int St);
 	int getArmor();
 	int getStrength();
 	std::string getName() {return Name;};
@@ -24,24 +24,35 @@ public:
 	//Phrases * getPhrase(std::string);
 };
 
+class Goblin:public Character
+{
+public:
+	Goblin(std::string Name);
+	int attack();
+};
+
 class Barbarian:public Character
 {
 public:
-	Barbarian(std::string Name): Character(Name)
-	{
-		Attack.set(2,6);
-		Defend.set(2,6);
-		Armor = 0;
-		Strength = 22;
-	};
+	Barbarian(std::string Name);
 	// static Phrases * Phrase;
+};
+
+class ReptilePeople:public Character
+{
+public:
+	ReptilePeople(std::string Name);
+};
+
+class BlueChix:public Character
+{
+public:
+	BlueChix(std::string Name);
 };
 
 class Shadow:public Character
 {
 public:
-	Shadow(std::string Name, int DAq, int DAs, int DDq, int DDs, int Ar, int St):
-		Character(Name, DAq, DAs, DDq, DDs, Ar, St)
-	{};
+	Shadow(std::string Name);
 	int defend();
 };
