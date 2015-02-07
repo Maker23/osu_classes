@@ -66,7 +66,15 @@ char Uppercase::transform (const char inChar)
 	return((char)toupper((int)inChar));
 }
 /* ********************************************************************* */
-void Cipher::doFilter(std::ifstream &in, std::ostream &out)
+
+Cipher::Cipher(int _RotateBy) 
+{
+	wordCounter = 0;
+	lineCounter = 0;
+	RotateBy=_RotateBy;
+}
+
+void Cipher::doFilter(std::istream &in, std::ostream &out)
 {
 	char inputChar;
 
@@ -74,16 +82,27 @@ void Cipher::doFilter(std::ifstream &in, std::ostream &out)
 	{
 		if ((int) inputChar <= 32 || (int)inputChar == 127) {
 			continue; // Discard control characters, whitespace, and Delete
+			// Keeping punctuation for now, pending reply to a question on Canvas
 		}
 		out.put(transform(inputChar));
-		charPosition++;
-		if (charPosition >4)
+		wordCounter++;
+		lineCounter++;
+		if (wordCounter >4)
 		{
-			out.put(' ');
-			charPosition = 0;
+			if ( lineCounter > 74 )
+			{
+				out.put(10); // Line Feed
+			 	lineCounter = 0;
+			}
+			else
+			{
+				out.put(' ');
+			}
+			wordCounter = 0;
 		}
 	}
 }
+
 void Cipher::doFilter(std::ifstream &in, std::ofstream &out)
 {
 	char inputChar;
@@ -92,13 +111,23 @@ void Cipher::doFilter(std::ifstream &in, std::ofstream &out)
 	{
 		if ((int) inputChar <= 32 || (int)inputChar == 127) {
 			continue; // Discard control characters, whitespace, and Delete
+			// Keeping punctuation for now, pending reply to a question on Canvas
 		}
 		out.put(transform(inputChar));
-		charPosition++;
-		if (charPosition >4)
+		wordCounter++;
+		lineCounter++;
+		if (wordCounter >4)
 		{
-			out.put(' ');
-			charPosition = 0;
+			if ( lineCounter > 74 )
+			{
+				out.put(10); // Line Feed
+			 	lineCounter = 0;
+			}
+			else 
+			{
+				out.put(' ');
+			}
+			wordCounter = 0;
 		}
 	}
 }

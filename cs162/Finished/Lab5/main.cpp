@@ -58,12 +58,14 @@ int main() {
 		std::cout << "Reading from " << inputFile << std::endl;
 	}
 
-  // Declare many filter instances
+  // Declare many filter instances  :)
 	Filter myFilter;
 	Uppercase myUppercase;
 	Encrypt myEncrypt(39); 
 	Cipher myCipher(13);
 
+
+  // Run the plain copy filter into it's output file
 	outputStream.open(plainCopyFile);
 	if ( outputStream.good() )
 	{
@@ -72,6 +74,7 @@ int main() {
 		outputStream.close();
 	}
 
+  // Uppercase filter, write to the apprpriate output file
 	outputStream.open(uppercaseCopyFile);
 	if ( outputStream.good() )
 	{
@@ -80,6 +83,7 @@ int main() {
 		outputStream.close();
 	}
 
+  // Encryption filter, write to the apprpriate output file
 	outputStream.open(encryptCopyFile);
 	if ( outputStream.good() )
 	{
@@ -88,17 +92,23 @@ int main() {
 		outputStream.close();
 	}
 
+  // Cipher filter, write to the apprpriate output file
+	// Cipher is encryption + uppercase + 5-letter chunks
 	outputStream.open(cipherCopyFile);
 	if ( outputStream.good() )
 	{
 		resetStream(inputStream);
 		myCipher.doFilter(inputStream, outputStream);
+		outputStream << std::endl;
 		outputStream.close();
 	}
 
-
 }
 
+/* Reset the input string by clearing the eof bit and seeking
+ * back to the beginning of the file.
+ * This allows us to read the same file over and over.
+ */
 void resetStream(std::ifstream &inputStream)
 {
 	inputStream.clear();

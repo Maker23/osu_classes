@@ -25,6 +25,8 @@ int main() {
 	{
 		std::cout << "Reading from " << inputFile << std::endl;
 	}
+	// Testing new, for that guy on Canvas
+	Encrypt * myFilterPtr = new Encrypt (4);  // works for me
 
   // Declare many filter instances
 	Filter myFilter;
@@ -41,6 +43,7 @@ int main() {
 	std::cout << "Cipher =======================================" << std::endl;;
 	resetStream(inputStream);
 	myCipher.doFilter(inputStream, std::cout);
+	std::cout << std::endl;
 
 }
 
