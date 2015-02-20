@@ -7,47 +7,16 @@
 #include "Character.h"
 #include "Dice.h"
 
-
-/*
-class Character{
-
-private:
-	std::string Name;
-	Dice Attack;
-	Dice Defend;
-	int Armor;
-	int Strength;
-
-public:
-	Character() {};
-	Character(std::string Name, int DAq, int DAs, int DDq, int DDs, int Ar, int St);
-	int getArmor();
-	int getStrength();
-	void setStrength(int St);
-	virtual int attack();
-	virtual int defend();
-	//Phrases * getPhrase(std::string);
-};
-
-*/
-Character::Character(std::string Na)
+Character::Character(std::string Na, CharType Ty)
 {
 	Name = Na;
+	Type = Ty;
 	Armor = 0;
 	Strength = 0;
-	AchillesFactor = 1.0;
+	AchillesFactor = 0;
 }
-
-/*
-Character::Character(std::string Na, int DAq, int DAs, int DDq, int DDs, int Ar, int St)
-{
-	Name = Na;
-	AttackDice.set(DAq, DAs);
-	DefendDice.set(DDq, DDs);
-	Armor = Ar;
-	Strength = St;
-}
-*/
+void Character::Reset()
+{}
 
 int Character::getArmor() 
 {
@@ -61,7 +30,7 @@ int Character::getStrength()
 
 void Character::setStrength(int St) 
 {
-	std::cout << "setting strength to " << St << std::endl;
+	if (DEBUG) std::cout << "setting strength to " << St << std::endl;
 	Strength = St;
 }
 
@@ -75,36 +44,41 @@ int Character::defend()
 	return (DefendDice.roll());
 }
 
+/* GOBLIN constructor and special attack. */
 
-Goblin::Goblin(std::string Name): Character(Name)
+Goblin::Goblin(std::string Name): Character(Name, (CharType)GOBLIN)
 {
 	AttackDice.set(2,6);
 	DefendDice.set(1,6);
 	Armor = 3;
 	Strength = 8;
+	AchillesFactor = 1.0;
 }
 
 int Goblin::attack()
 {
 	int _attack = AttackDice.roll();
 
-	if (_attack == 12) 
+	if (_attack == 12 && this->AchillesFactor == 1.0 )
 	{
 		AchillesFactor = 0.5;
-		if (DEBUG) std::cout << "Setting achilles factor to 0.5" << std::endl;
+		if (DEBUG) std::cout << "Setting achilles factor for "
+			<< this->getName() << " to 0.5 ***************" << std::endl;
 	}
 	return (_attack);
 }
 
-Barbarian::Barbarian(std::string Name): Character(Name)
+/* BARBARIAN constructor */
+Barbarian::Barbarian(std::string Name): Character(Name, (CharType)BARBARIAN)
 {
 	AttackDice.set(2,6);
 	DefendDice.set(2,6);
 	Armor = 0;
-	Strength = 22;
+	Strength = 12;
 }
 
-ReptilePeople::ReptilePeople(std::string Name): Character(Name)
+/* REPTILE constructor */
+ReptilePeople::ReptilePeople(std::string Name): Character(Name, (CharType)REPTILE)
 {
 	AttackDice.set(3,6);
 	DefendDice.set(1,6);
@@ -112,7 +86,8 @@ ReptilePeople::ReptilePeople(std::string Name): Character(Name)
 	Strength = 18;
 }
 
-BlueChix::BlueChix(std::string Name): Character(Name)
+/* BLUE CHIX constructor */
+BlueChix::BlueChix(std::string Name): Character(Name, (CharType)BLUECHIX)
 {
 	AttackDice.set(2,10);
 	DefendDice.set(3,6);
@@ -120,27 +95,52 @@ BlueChix::BlueChix(std::string Name): Character(Name)
 	Strength = 12;
 }
 
-Shadow::Shadow(std::string Name): Character(Name)
+/* THE SHADOW constructor and special defense */
+Shadow::Shadow(std::string Name): Character(Name, (CharType)SHADOW)
 {
 	AttackDice.set(2,10);
 	DefendDice.set(1,6);
 	Armor = 0;
-	Strength = 22;
+	Strength = 12;
 }
 
 int Shadow::defend()
 {
 	// The random number generated is already seeded, since instantiating
 	// a Shadow causes the Dice constructor to run
-	
 	if ( rand() % 2 ) 
 	{
-		// The Shadow avoids the attack!
-		std::cout << "The shadow escapes!" << std::endl;
+		// The Shadow avoids the attack 50% of the time
+		if (DEBUG) std::cout << "The shadow evades the attack!" << std::endl;
 	 	return(INT_MAX); // hm.
 	}
 	else
 	{
 		return (DefendDice.roll());
 	}
+}
+
+/* RESET functions for each derivative type.  These are used for
+ * testing, to set a character back to normal after a combat round
+ */
+void Goblin::Reset()
+{
+	Strength = 8;
+	AchillesFactor = 1.0; // Set in the attacking Goblin
+}
+void ReptilePeople::Reset()
+{
+	Strength = 18;
+}
+void BlueChix::Reset()
+{
+	Strength = 12;
+}
+void Barbarian::Reset()
+{
+	Strength = 12;
+}
+void Shadow::Reset()
+{
+	Strength = 12;
 }

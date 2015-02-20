@@ -1,10 +1,10 @@
 PROJECT_NAME = Assignment3
-MAIN = main.cpp
+MAIN = 
 TEST = test.cpp
 LIBRARIES = Dice.cpp Character.cpp
 SOURCES = $(MAIN) $(TEST) $(LIBRARIES)
-HEADERS = Dice.h Character.h
-DOCS = 
+HEADERS = Dice.h Character.h Flags.h
+DOCS = CS162Assignment3.pdf
 
 ############
 CC = g++
@@ -17,15 +17,17 @@ ZIPFILE = $(PROJECT_NAME).zip
 
 all: $(PROJECT_NAME)
 
-$(PROJECT_NAME):$(MAIN) $(LIBRARIES) $(HEADERS)
+$(PROJECT_NAME):$(TEST) $(LIBRARIES) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-test: $(TEST) $(LIBRARIES) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $^
-	./test
+$(PROJECT_NAME).test:$(TEST) $(LIBRARIES) $(HEADERS)
+	$(CC) $(CFLAGS) -DTEST=true -o $@ $^
+
+test: $(PROJECT_NAME).test
+	./$(PROJECT_NAME).test
 
 clean:
-	rm -f $(PROJECT_NAME) *.o *~ test Output_*.txt
+	rm -f $(PROJECT_NAME) *.o *~ test Output_*.txt $(PROJECT_NAME).test
 
 zip: 
 	zip $(ZIPFILE) $(SOURCES) $(HEADERS) $(DOCS) makefile

@@ -20,6 +20,11 @@ protected:
 */
 
 
+Dice::Dice()
+{
+	srand(time(NULL)); // Seeds random number generator
+}
+
 Dice::Dice(int numDice, int numSides)
 {
 	this->numDice = numDice;
@@ -34,7 +39,7 @@ int Dice::roll() const
 	{
 		Total += ((rand() % numSides) + 1);
 	}
-		
+	if (DEBUG) std::cout << "Dice roll is " << Total << std::endl;	
 	return (Total);
 }
 

@@ -6,7 +6,7 @@
 class Dice
 {
 public:
- Dice() {};
+ Dice();
  Dice(int numDice, int numSides);
  void set (int numDice, int numSides);
  //void setNumSides(int numSides);
