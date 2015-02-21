@@ -1,6 +1,5 @@
 #include <cfloat>
 #include <climits>
-#include <cstdio> // sprintf
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -22,7 +21,8 @@ int main()
 	std::string tmpFilename = "";
 	std::string DataDirectory = "DataFiles/"; // End with a slash please :)
 	std::string inputFileName = getStringFromUser("File name for random number data", "Lab7Input");
-	int sizeOfInput = getIntFromUser("How many random numbers do you want in your files?", 1000, 1, INT_MAX);
+	// Max 1,000,000 numbers because that takes 6 minutes to sort  :)
+	int sizeOfInput = getIntFromUser("How many random numbers do you want in your files?", 1000, 1, 1000000);
 
 	DataFile * allFiles[4];
 	int allFileCounter=0;
@@ -108,7 +108,6 @@ int getIntFromUser(std::string Prompt, int DefaultAnswer, int MinRange, int MaxR
 		{
 			tmpFloat = DefaultAnswer;
 			tmpInt = (int)tmpFloat;
-			Good = true;
 		}
 		else 
 		{
@@ -117,20 +116,28 @@ int getIntFromUser(std::string Prompt, int DefaultAnswer, int MinRange, int MaxR
 			ss >> tmpFloat;
 			if ( ss.fail() )
 			{
-				std::cout << "Error: input \"" << tmpString << "\" was not a number; try again" << std::endl;
+				std::cout << "Error: input \"" << tmpString 
+					<< "\" was not a number; try again" << std::endl;
+				continue;
 			}
 			else {
 				tmpInt = (int)tmpFloat;
 				if ( (float)tmpInt != tmpFloat )
 				{
-					std::cout << "Error: input \"" << tmpFloat << "\" was not an integer; try again" << std::endl;
-				}
-				else
-				{
-					Good = true;
+					std::cout << "Error: input \"" << tmpFloat 
+						<< "\" was not an integer; try again" << std::endl;
+					continue;
 				}
 			}
 		}
+		if (tmpInt >= MinRange && tmpInt <= MaxRange) 
+			Good=true;
+		else 
+		{
+			std::cout << "Error: Number is out of range (" 
+				<< MinRange << "-" << MaxRange << ")" << std::endl;
+		}
+
 	}
 	while ( ! Good );
 
