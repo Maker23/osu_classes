@@ -18,11 +18,12 @@ struct Room {
 	}
 };
 	
+enum RoomIDs {A, B, C, D, F, G, H, Done };
 enum MenuChoice { N, S, E, W, unknown};
 
 MenuChoice getUserMenuChoice();
 bool getUserYN();
-Room * BuildTheMaze();
+Room * BuildTheMaze(Room** allRooms);
 Room * getNextRoom( Room * currentRoom);
 Room * getNextRoomFromDirection( Room * currentRoom, MenuChoice nextChoice);
 void PrintRoom(Room * currentRoom, bool Enigmatic);

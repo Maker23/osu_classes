@@ -36,8 +36,10 @@ Room * getNextRoomFromDirection( Room * currentRoom, MenuChoice nextChoice)
 				error=true;
 				break;
 		}
-		if ( error == false && nextRoom == NULL )
+		if ( error == false && nextRoom == NULL ){
 			std::cout << "Sorry, you can't go that way." << std::endl;
+			nextRoom = currentRoom;	
+		}
 
 	return(nextRoom);
 }
@@ -170,4 +172,46 @@ bool getUserYN()
 	}
 	while (menuChoice == YNunknown);
 	return (Result);
+}
+/*****************************************************************/
+Room * BuildTheMaze(Room **allRooms)
+{
+	Room* Outside = new Room("Outside");
+
+	allRooms[A] = new Room("A");
+	allRooms[B] = new Room("B");
+	allRooms[C] = new Room("C");
+	allRooms[D] = new Room("D");
+	allRooms[F] = new Room("F");
+	allRooms[G] = new Room("G");
+	allRooms[H] = new Room("H");
+	allRooms[Done] = Outside;
+	
+	Outside->North = allRooms[A];
+
+	allRooms[A]->North = allRooms[B];
+	allRooms[A]->East = allRooms[C];
+
+	allRooms[B]->West  = allRooms[H];
+	allRooms[B]->East  = allRooms[F];
+	allRooms[B]->South = allRooms[A];
+
+	allRooms[C]->North = allRooms[F];
+	allRooms[C]->West  = allRooms[A];
+
+	allRooms[D]->West  = allRooms[F];
+	allRooms[D]->North = allRooms[G];
+	allRooms[D]->South = allRooms[Done];
+
+	allRooms[F]->West  = allRooms[B];
+	allRooms[F]->East  = allRooms[D];
+	allRooms[F]->South = allRooms[C];
+
+	allRooms[G]->West  = allRooms[H];
+	allRooms[G]->South = allRooms[D];
+
+	allRooms[H]->East  = allRooms[B];
+	allRooms[H]->North = allRooms[G];
+
+	return Outside;
 }

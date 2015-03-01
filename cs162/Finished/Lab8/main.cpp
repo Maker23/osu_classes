@@ -3,8 +3,6 @@
 
 #include "Functions.h"
 
-enum RoomIDs {A, B, C, D, F, G, H, Done };
-Room* allRooms[8];
 
 //enum MenuChoice { N, S, E, W, unknown};
 //char MenuOptions[] = {'N', 'S', 'E', 'W'};
@@ -14,12 +12,13 @@ main()
 {
 	bool Enigmatic = false;
 	Room * currentRoom;
+	Room* allRooms[8];
 
 	std::cout << 
 		"Do you want to turn on Enigmatic mode? No labels, no hints. (Y/N): ";
   Enigmatic = getUserYN();
 
-	Room *Outside = BuildTheMaze();
+	Room *Outside = BuildTheMaze(allRooms);
 	currentRoom = Outside->North; // By convention
 	while (currentRoom != Outside)
 	{
@@ -35,6 +34,7 @@ main()
 }
 
 /*****************************************************************/
+/*
 Room * BuildTheMaze()
 {
 	Room* Outside = new Room("Outside");
@@ -77,3 +77,4 @@ Room * BuildTheMaze()
 	return Outside;
 }
 
+*/

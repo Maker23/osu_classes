@@ -11,20 +11,33 @@ ZIPFILE = $(PROJECT_NAME).zip
 ############
 CC = g++
 CFLAGS = -std=c++0x
-MAKEFLAGS += -k
+MAKEFLAGS += -k -s
 
-all: $(PROJECT_NAME) test
+all: $(PROJECT_NAME) test comments
 
 test: $(TEST) $(LIBRARIES) $(HEADERS)
+	echo $(CC) $(CFLAGS) -o $@ $^
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(PROJECT_NAME):$(MAIN) $(LIBRARIES) $(HEADERS)
+	echo $(CC) $(CFLAGS) -o $@ $^
 	$(CC) $(CFLAGS) -o $@ $^
 
+comments: 
+	echo ""
+	echo "  Run  ./Lab8  to try the maze program."
+	echo "  Run  ./test  to do the automated tests."
+	echo "  The map of the maze, along with information about the test method,"
+	echo "  can be found in the pdf document."
+	echo "  Thx Jan!"
+	echo ""
+
 clean:
+	echo rm -f $(PROJECT_NAME) *.o *~ test $(ZIPFILE)
 	rm -f $(PROJECT_NAME) *.o *~ test $(ZIPFILE)
 
 zip: 
+	echo zip $(ZIPFILE) $(SOURCES) $(HEADERS) $(DOCS) $(DATA) makefile
 	zip $(ZIPFILE) $(SOURCES) $(HEADERS) $(DOCS) $(DATA) makefile
 
 %:%.cpp
