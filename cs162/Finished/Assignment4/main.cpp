@@ -13,6 +13,8 @@
 #include "Player.h"
 #include "Character.h"
 
+#define INTERACTIVE !TEST // 
+
 enum MenuChoice { Gob, Barb, Blu, Rept, Shad, unknown };
 char MenuOptions[] = {'G','B','C','R','S'};
 
@@ -20,7 +22,9 @@ int Combat (Character & One, Character & Two);
 int getIntFromUser(std::string Prompt, int DefaultAnswer, int MinRange, int MaxRange );
 std::string getAGoodName(int & offset, CharType type);
 void getRoster (Player & myPlayer, int numCharacters, int seed);
-void Score (std::set<Character*> &allFighters);
+void getTestRoster (Player & myPlayer, int numCharacters, int Side);
+void FighterScore (std::set<Character*> &allFighters);
+void PlayerScore (Player * PlayerOne, Player* PlayerTwo, std::set<Character*> &allFighters);
 
 void printUserMenu();
 MenuChoice getUserMenuChoice(std::string PlayerName);
@@ -28,6 +32,7 @@ MenuChoice getUserMenuChoice(std::string PlayerName);
 
 int main()
 {
+	int numFighters;
 	std::string buffer;
 	std::set <Character*> allFighters;
   srand(time(NULL));
@@ -35,9 +40,18 @@ int main()
 	Player PlayerOne("PlayerOne");
 	Player PlayerTwo("PlayerTwo");
 
-	int numFighters = getIntFromUser("How many fighters should each player have? (1-100)", 5, 1, 100);
-	getRoster(PlayerOne, numFighters, rand() % (size_t)&PlayerOne);
-	getRoster(PlayerTwo, numFighters, rand() % (size_t)&PlayerTwo);
+  if (!TEST)
+	{
+		numFighters = getIntFromUser("How many fighters should each player have? (1-100)", 5, 1, 100);
+		getRoster(PlayerOne, numFighters, rand() % (size_t)&PlayerOne);
+		getRoster(PlayerTwo, numFighters, rand() % (size_t)&PlayerTwo);
+	}
+	else
+	{
+		numFighters = 12;
+		getTestRoster(PlayerOne, numFighters, 0);
+		getTestRoster(PlayerTwo, numFighters, 1);
+	}
 
   PlayerOne.Print();
   PlayerTwo.Print();
@@ -51,9 +65,11 @@ int main()
 		Combat( *FighterOne, *FighterTwo);
 		(FighterOne->getHealth() <= 0) ? PlayerOne.RetireFighter(FighterOne) : FighterOne->scoreAgainst(FighterTwo);
 		(FighterTwo->getHealth() <= 0) ? PlayerTwo.RetireFighter(FighterTwo) : FighterTwo->scoreAgainst(FighterOne);
-		if ( ! (ASSIGN || TEST ) ) 
+		if ( (! (ASSIGNMENT || TEST )) && VERBOSE ) 
 		{
 			// For the assignment we just keep going
+			// But otherwise it's nice to pause between bouts 
+			// to look at the score
 			PlayerOne.Print();
   		PlayerTwo.Print();
 			std::cout << std::endl << "Hit return to continue the tournament: ";
@@ -65,17 +81,46 @@ int main()
 		FighterTwo = PlayerTwo.NextFighter();
 	}
 
-	if ( ! ASSIGN )
+	if ( ! ASSIGNMENT && VERBOSE )
 	{
  		PlayerOne.Print();
  		PlayerOne.PrintGraveyard();
  		PlayerTwo.Print();
  		PlayerTwo.PrintGraveyard();
 	}
-	Score(allFighters);
+	FighterScore(allFighters);
+	PlayerScore(&PlayerOne, &PlayerTwo, allFighters);
 }
 
-void Score (std::set<Character*> &allFighters)
+void PlayerScore (Player * PlayerOne, Player* PlayerTwo, std::set<Character*> &allFighters)
+{
+	Character* tmpCharacter;
+	std::set<Character*>::iterator iterS;
+	
+	for (iterS = allFighters.begin(); iterS != allFighters.end(); iterS++)
+	{
+		if ((*iterS)->getPlayer() == PlayerOne ) 
+			PlayerOne->TotalScore += (*iterS)->getScore();
+		else if ((*iterS)->getPlayer() == PlayerTwo ) 
+			PlayerTwo->TotalScore += (*iterS)->getScore();
+	}
+  
+	std::cout << std::endl << "*********" << "  Player rankings   " << "*********" << std::endl << std::endl;
+	if (PlayerOne->TotalScore > PlayerTwo->TotalScore)
+		std::cout << PlayerOne->Name << " wins the tournament!" << std::endl;
+	else if (PlayerTwo->TotalScore > PlayerOne->TotalScore)
+		std::cout << PlayerTwo->Name << " wins the tournament" << std::endl;
+	else 
+		std::cout << "The tournament is a tie!" << std::endl;
+
+	std::cout << std::endl << "Overall scores: " << std::endl;
+	std::cout << "	" << PlayerOne->Name << ": " << PlayerOne->TotalScore << std::endl;
+	std::cout << "	" << PlayerTwo->Name << ": " << PlayerTwo->TotalScore << std::endl;
+}
+
+
+
+void FighterScore (std::set<Character*> &allFighters)
 {
 	Character* tmpCharacter;
 	std::list<Character*> rankedList;
@@ -111,18 +156,33 @@ void Score (std::set<Character*> &allFighters)
 			}
 		}
 	}
-	for (iterL = rankedList.begin(); iterL != rankedList.end(); iterL++)
+	if (DEBUG)
 	{
-		std::cout << (*iterL)->getName() << "	" << (*iterL)->getScore() << std::endl;
+		for (iterL = rankedList.begin(); iterL != rankedList.end(); iterL++)
+		{
+			std::cout << (*iterL)->getName() << "	" << (*iterL)->getScore() << std::endl;
+		}
 	}
+
+	std::cout << std::endl << "*********" << "  Fighter rankings  " << "*********" << std::endl << std::endl;
 	iterL = rankedList.begin();
-	std::cout << "First place " << (*iterL)->getName() << "	" << (*iterL)->getScore() << std::endl;
+	std::cout << "First place goes to " << (*iterL)->getName() 
+		<< " with	" << (*iterL)->getScore() << " points" 
+		<< " (" << ((Player*)(*iterL)->getPlayer())->Name << ")"
+		<< std::endl;
 	iterL++;
-	std::cout << "Second place " << (*iterL)->getName() << "	" << (*iterL)->getScore() << std::endl;
+	std::cout << "Second place goes to " << (*iterL)->getName() 
+		<< " with	" << (*iterL)->getScore() << " points" 
+		<< " (" << ((Player*)(*iterL)->getPlayer())->Name << ")"
+		<< std::endl;
 	iterL++;
-	std::cout << "Third place " << (*iterL)->getName() << "	" << (*iterL)->getScore() << std::endl;
+	std::cout << "Third place goes to " << (*iterL)->getName() 
+		<< " with	" << (*iterL)->getScore() << " points" 
+		<< " (" << ((Player*)(*iterL)->getPlayer())->Name << ")"
+		<< std::endl;
 }
 
+/* ********************************************************* */
 void getRoster (Player & myPlayer, int numCharacters, int Seed)
 {
 	MenuChoice nextChoice;
@@ -166,7 +226,58 @@ void getRoster (Player & myPlayer, int numCharacters, int Seed)
 			}
 		}
 		while (nextChoice == unknown);
+		myFighter->setPlayer(&myPlayer);
 		myPlayer.LineUp.push_back(myFighter);
+		rSeed++;
+	}
+}
+
+/* ********************************************************* */
+void getTestRoster (Player & myPlayer, int numCharacters, int Side)
+{
+	MenuChoice nextChoice;
+	Character * myFighter; 
+	std::string Name;
+	std::string tmpString;
+
+	int rSeed = Side + (Side*numCharacters);
+ 
+  MenuChoice Rosters[2][12] = {
+		{Gob,Barb,Blu,Rept,Shad,Gob ,Barb,Blu ,Rept,Shad,Blu ,Barb},
+		{Gob,Barb,Blu,Rept,Shad,Barb,Blu ,Rept,Shad,Gob ,Shad,Shad},
+	};
+
+	for (int i = 0; i< numCharacters; i++)
+	{
+		nextChoice = Rosters[Side][i];
+		switch (nextChoice){
+			case Gob:
+				Name = getAGoodName( rSeed, (CharType)GOBLIN);
+				myFighter = new Goblin(Name);
+				break;
+			case Barb:
+				Name = getAGoodName( rSeed, (CharType)BARBARIAN);
+				myFighter = new Barbarian(Name);
+				break;
+			case Blu:
+				Name = getAGoodName( rSeed, (CharType)BLUECHIX);
+				myFighter = new BlueChix(Name);
+				break;
+			case Rept:
+				Name = getAGoodName( rSeed, (CharType)REPTILE);
+				myFighter = new ReptilePeople(Name);
+				break;
+			case Shad:
+				Name = getAGoodName( rSeed, (CharType)SHADOW);
+				myFighter = new Shadow(Name);
+				break;
+			default:
+				std::cout << "Unrecognized option" << nextChoice << ", try again" << std::endl;
+				break;
+		}
+		myFighter->setPlayer(&myPlayer);
+		myPlayer.LineUp.push_back(myFighter);
+		rSeed++;
 	}
 }
 
@@ -286,9 +397,8 @@ std::string getAGoodName(int & offset, CharType type)
 {
 	int maxNames = 10;
 	int pickAName = abs(10 - offset);
-	if (pickAName > maxNames) return ""; //TODO Fix
 	std::string Prompt;
-	offset ++;
+	std::string defaultName;
 
   std::string Classes[5] = {"Goblin", "Barbarian", "Reptile", "Blue Chix", "Shadow"};
 
@@ -306,8 +416,22 @@ std::string getAGoodName(int & offset, CharType type)
 		 "Tenebrae", "Smoke", "Fog", "Ember", "Pall"}
 	};
 
-	Prompt = "Choose a name for your " + Classes[type];
-	return( (getStringFromUser(Prompt, Names[type][pickAName]) + " the " + Classes[type]));
+	if (TEST) 
+		defaultName = Classes[type] + "_" + std::to_string((long long)offset); 
+	else if ((pickAName > maxNames) || TEST) 
+		defaultName = Classes[type] + "_" + std::to_string((long long)pickAName); 
+  else
+		defaultName = Names[type][pickAName] + " the " + Classes[type];
+
+	if (! TEST)
+	{
+		Prompt = "Choose a name for your " + Classes[type];
+		return (getStringFromUser(Prompt, defaultName));
+	}
+	else
+	{
+		return(defaultName);
+	}
 	//return Names[type][pickAName];
 		
 }

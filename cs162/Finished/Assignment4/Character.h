@@ -11,6 +11,7 @@ class Character{
 
 protected:
 	std::string Name;
+	void * Player;
 	CharType Type;
 	Dice AttackDice;
 	Dice DefendDice;
@@ -34,6 +35,8 @@ public:
 	void setScore(int Sc);
 	void setHealth(int St);
 	void scoreAgainst(Character * Ch);
+	void setPlayer(void * PlaPtr);
+	void * getPlayer();
 	void Recover();
 	virtual void Reset(); // Used in testing
 	std::string getName() {return Name;};

@@ -4,7 +4,7 @@ TEST = test.cpp
 LIBRARIES = Combat.cpp Dice.cpp Character.cpp Player.cpp
 SOURCES = $(MAIN) $(TEST) $(LIBRARIES)
 HEADERS = Dice.h Character.h Flags.h Player.h
-DOCS = CS162Assignment3.pdf
+DOCS = CS162Assignment4.pdf instructions.txt
 
 ############
 CC = g++
@@ -15,16 +15,22 @@ CFLAGS = -std=c++0x
 MAKEFLAGS += -k
 ZIPFILE = $(PROJECT_NAME).zip
 
-all: $(PROJECT_NAME)
+all: $(PROJECT_NAME) stat_test test instructions
 
 $(PROJECT_NAME):$(MAIN) $(LIBRARIES) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-test:$(TEST) $(LIBRARIES) $(HEADERS)
+test:$(MAIN) $(LIBRARIES) $(HEADERS)
 	$(CC) $(CFLAGS) -DTEST=true -o $@ $^
 
+stat_test:$(TEST) $(LIBRARIES) $(HEADERS)
+	$(CC) $(CFLAGS) -DTEST=true -DSTATISTICS=true -o $@ $^
+
+instructions:
+	cat instructions.txt
+
 clean:
-	rm -f $(PROJECT_NAME) *.o *~ test Output_*.txt $(PROJECT_NAME).test
+	rm -f $(PROJECT_NAME) *.o *~ test stats_test
 
 zip: 
 	zip $(ZIPFILE) $(SOURCES) $(HEADERS) $(DOCS) makefile

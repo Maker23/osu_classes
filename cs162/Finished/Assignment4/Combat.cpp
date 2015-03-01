@@ -10,8 +10,8 @@
 #define TEST false
 #endif
 
-int Combat (Character & PlayerOne, Character & PlayerTwo);
-void runStatisticsTests(Character &PlayerOne, Character & PlayerTwo);
+int Combat (Character & FighterOne, Character & FighterTwo);
+void runStatisticsTests(Character &FighterOne, Character & FighterTwo);
 void runTests();
 
 
@@ -23,44 +23,49 @@ void runTests();
  *
  * ********************************************************************/
 
-int Combat (Character & PlayerOne, Character & PlayerTwo)
+int Combat (Character & FighterOne, Character & FighterTwo)
 {
 	int flip = rand() % 2; // Toss the coin to see who attacks first
 	int defend, attack, damage;
+	int numRounds = 0;
 	Character *Attacker, *Defender;
+	Character *FirstAttacker = NULL;
 
   if (TEST) {
 		// If we're testing reset all players to full strength
-//		PlayerOne.Reset();
-//		PlayerTwo.Reset();
+		FighterOne.Reset();
+		FighterTwo.Reset();
 	}
 	else {
 		// Otherwise recover some health if it's low
-		PlayerOne.Recover();
-		PlayerTwo.Recover();
+		FighterOne.Recover();
+		FighterTwo.Recover();
 	}
 
-	std::cout << "COMBAT  " << PlayerOne.getName() << " vs " << PlayerTwo.getName() << std::endl;
-	PlayerOne.Bouts ++;
-	PlayerTwo.Bouts ++;
+	if (!STATISTICS) std::cout << "Combat: " << FighterOne.getName() << " vs " << FighterTwo.getName() << std::endl;
+	FighterOne.Bouts ++;
+	FighterTwo.Bouts ++;
 	do
 	{
 		/* Alternate who attacks vs. who defends. Other than that the
 		 * code is the same for all combat rounds.  */
 
+		numRounds ++;
   	if (flip == 0 ) 
 		{
-			Attacker = &PlayerOne;
-			Defender = &PlayerTwo;
+			Attacker = &FighterOne;
+			Defender = &FighterTwo;
 		}
 		else
 		{
-			Attacker = &PlayerTwo;
-			Defender = &PlayerOne;
+			Attacker = &FighterTwo;
+			Defender = &FighterOne;
 		}
+		if (FirstAttacker == NULL)
+			FirstAttacker = Attacker; // Save this, we'll want it later
 
     /* Now carry out the attack....  */
-		if (!TEST) std::cout << Attacker->getName() << " attacks " << Defender->getName() << std::endl;
+		if (!TEST && VVERBOSE ) std::cout << Attacker->getName() << " attacks " << Defender->getName() << std::endl;
 		if ( Defender -> AchillesFactor && Attacker->getType() != GOBLIN) {
 			attack = Attacker->attack() * Defender->AchillesFactor;
 			
@@ -81,36 +86,49 @@ int Combat (Character & PlayerOne, Character & PlayerTwo)
 
 		if (damage > 0 ) {
 			Defender->setHealth(Defender->getHealth() - damage);
-			if (! TEST) std::cout << Defender->getName() << " takes " 
+			if (! TEST && VVERBOSE) std::cout << "	" << Defender->getName() << " takes " 
 				<< damage << " damage!" << std::endl;
 			if (Defender->getHealth() <= 0 )
 			{
 				// Defender has died in this round
-				if (!TEST) std::cout << Defender->getName() 
+				if (!TEST && VVERBOSE) std::cout << Defender->getName() 
 					<< " is hors de combat :( " << std::endl;
 			}
 		}
 		else 
 		{
-			if (!TEST)std::cout << "No damage was done!" << std::endl;
+			if (!TEST && VVERBOSE)std::cout << "No damage was done!" << std::endl;
 		}
 		flip = abs(flip - 1); // Flip alternates between 0 and 1
 	}
-	while ( PlayerOne.getHealth() > 0 && PlayerTwo.getHealth() > 0 );
+	while ( FighterOne.getHealth() > 0 && FighterTwo.getHealth() > 0 );
+
+	// Extra points for the winner if they didn't attack first
+	// Extra points for the loser if the fight goes past N rounds
+	Attacker->Wins++;
+	Defender->Losses++;
+	if (Attacker != FirstAttacker)
+	{
+		if (!TEST && VVERBOSE) std::cout <<  "	" <<"Awarding a bonus to winner " 
+			<< Attacker->getName() << " for not attacking first" << std::endl;
+		Attacker->setScore(Attacker->getScore() + 1); // Bonus
+	}
+	if (numRounds > 11 )
+	{
+		if (!TEST && VVERBOSE) std::cout << "	" << "Awarding a bonus to loser " 
+			<< Defender->getName() << " for lasting longer than 11 rounds" << std::endl;
+		Defender->setScore(Defender->getScore() + 1); // Bonus
+	}
 
 
   // Return the results; this is mostly useful for accumulating results during testing
-  if (PlayerOne.getHealth() <= 0 )
-	{
-		PlayerTwo.Wins++;
-		PlayerOne.Losses++;
-		return (2); // PlayerTwo won
+  if (FighterOne.getHealth() <= 0 )
+	{ 
+		return (2);// FighterTwo won
 	}
-	else if (PlayerTwo.getHealth() <= 0 )
+	else if (FighterTwo.getHealth() <= 0 )
 	{
-		PlayerOne.Wins++;
-		PlayerTwo.Losses++;
-		return (1); // PlayerOne won
+		return (1); // FighterOne won
 	}
 	else
 	{
@@ -126,24 +144,24 @@ int Combat (Character & PlayerOne, Character & PlayerTwo)
  *  between them.  Print the finally win/loss tally
  *
  * ********************************************************************/
-void runStatisticsTests (Character & PlayerOne, Character & PlayerTwo)
+void runStatisticsTests (Character & FighterOne, Character & FighterTwo)
 {
 	int Iterations = 100000;
-	int PlayerOneCount = 0;
-	int PlayerTwoCount = 0;
+	int FighterOneCount = 0;
+	int FighterTwoCount = 0;
 	int ReturnFromCombat;
 	std::string TypeNames[] = {"Goblin", "Barbarian", "Reptile", "BlueChix", "Shadow"};
 
 	for (int i=0; i< Iterations; i++)
 	{
-		ReturnFromCombat = Combat(PlayerOne, PlayerTwo);
+		ReturnFromCombat = Combat(FighterOne, FighterTwo);
 		if (ReturnFromCombat == 1) 
-			PlayerOneCount ++;
+			FighterOneCount ++;
 		else if (ReturnFromCombat ==2)
-			PlayerTwoCount ++;
+			FighterTwoCount ++;
 	}
-	std::cout << TypeNames[PlayerOne.getType()] << " vs. " << TypeNames[PlayerTwo.getType()] 
-		<< " = " << PlayerOneCount << " vs. " << PlayerTwoCount << std::endl;
+	std::cout << TypeNames[FighterOne.getType()] << " vs. " << TypeNames[FighterTwo.getType()] 
+		<< " = " << FighterOneCount << " vs. " << FighterTwoCount << std::endl;
 
   std::cout.flush();
 }

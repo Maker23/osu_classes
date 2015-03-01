@@ -20,6 +20,7 @@ Character::Character(std::string Na, CharType Ty)
 	Wins = 0;
 	Losses = 0;
 	AchillesFactor = 0;
+	Player = NULL;
 }
 void Character::Reset()
 {
@@ -54,11 +55,21 @@ void Character::setScore(int Sc)
 	Score = Sc;
 }
 
+void Character::setPlayer(void * PlaPtr)
+{
+	Player = PlaPtr;
+}
+void * Character::getPlayer()
+{
+	return Player;
+}
+
 void Character::scoreAgainst(Character * Ch)
 {
-	this->setScore (this->getScore() + 2); // Two points for the win
-	if (this->Health < 3) this->setScore(this->getScore() + 1); // One point for nearly dying
-	// Extra points if the other character is stronger than you
+	this->setScore (this->getScore() + 3); // Three points for the win
+ 	// One point for nearly dying: leave it all on the battlefield!
+	//if (this->Health < 3) this->setScore(this->getScore() + 1);
+	// Extra points if the loser is stronger than the winner
 	if (this->Strength < Ch->Strength) {
 		this->setScore ( this->getScore() + (Ch->Strength - this->Strength));
 	}
@@ -67,6 +78,8 @@ void Character::scoreAgainst(Character * Ch)
 
 void Character::Recover()
 {
+	if (Health == Strength) return;
+
 	Health += (int)((float)Strength * (0.3)); // Strong characters recover faster
 	if (Health < 0) 
 	{
@@ -76,8 +89,7 @@ void Character::Recover()
 	{
 		Health = Strength;
 	}
-	//if (DEBUG) std::cout << "Recovery: " << Name << "'s health is now " << Health << std::endl;
-	std::cout << "******* Recovery: " << Name << "'s health is now " << Health << std::endl;
+	if (VVERBOSE) std::cout << "** Recovery: " << Name << "'s health is now " << Health << std::endl;
 }
 
 int Character::attack()

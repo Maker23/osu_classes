@@ -1,8 +1,14 @@
 #ifndef FLAG_H
 #define FLAG_H
 
+#define VERBOSE true
+#define VVERBOSE false
 #define DEBUG false
-#define ASSIGN false
+#define ASSIGNMENT true
+
+#ifndef STATISTICS
+#define STATISTICS false // override this on the compiler command line
+#endif
 
 #ifndef TEST
 #define TEST false // override this on the compiler command line

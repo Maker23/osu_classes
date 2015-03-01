@@ -5,6 +5,7 @@
 class Player 
 {
 public:
+	int TotalScore;
 	std::string Name;
 	std::list<Character*> LineUp;
 	std::stack<Character*> Graveyard;

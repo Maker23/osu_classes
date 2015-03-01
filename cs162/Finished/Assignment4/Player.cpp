@@ -15,6 +15,7 @@
 class Player 
 {
 public:
+	int TotalScore;
 	std::string Name;
 	std::list<Character*> LineUp;
 	std::stack<Character*> Graveyard;
@@ -31,13 +32,15 @@ Player::Player(std::string Na)
 {
 	Name = Na;
 	CurrentFighter = LineUp.end();
+	TotalScore = 0;
 }
 
 void Player::RetireFighter (Character * DeadFighter)
 {
 	bool found = false;
 	std::list<Character*>::iterator tmpIter;
-	std::cout << "Removing dead fighter " << DeadFighter->getName() << " from Lineup" << std::endl;
+	if (!TEST)  std::cout << "	" << "Removing dead fighter " << DeadFighter->getName() 
+		<< " from " << this->Name << "'s Lineup" << std::endl;
 
 	// Pop DeadFighter off the list
 	for (tmpIter = LineUp.begin(); tmpIter != LineUp.end(); tmpIter++)
@@ -127,16 +130,13 @@ Character* Player::NextFighter()
 {
 	std::list<Character*>::iterator next;
 
-	//std::cout << "In nextfighter" << std::endl; //DEBUG
 	if (LineUp.size() == 0 ) 
 	{
-		//std::cout << "In nextfighter, returning null" << std::endl; //DEBUG
 		return NULL;
 	}
 
 	if (CurrentFighter == LineUp.end() )
 	{
-		//std::cout << "In nextfighter, Current = End " << std::endl; //DEBUG
 		CurrentFighter = LineUp.begin();
 		return *CurrentFighter;
 	}
@@ -145,22 +145,18 @@ Character* Player::NextFighter()
 		next++;
 	}
 
-	//else if (LineUp.size() !=0  && (CurrentFighter == NULL || CurrentFighter == LineUp.end() ))
 	if (LineUp.size() !=0  && CurrentFighter == LineUp.end() )
 	{
-		//std::cout << "In nextfighter, Current = End " << std::endl; //DEBUG
 		CurrentFighter = LineUp.begin();
 		return *CurrentFighter;
 	}
 	else if (LineUp.size() !=0  && next == LineUp.end() )
 	{
-		//std::cout << "In nextfighter, returning Begin " << std::endl; //DEBUG
 		CurrentFighter = LineUp.begin();
 		return *CurrentFighter;
 	}
 	else 
 	{
-		//std::cout << "In nextfighter, returning CurrentFighter++ " << std::endl; //DEBUG
 		CurrentFighter++;
 		return *CurrentFighter;
 	}

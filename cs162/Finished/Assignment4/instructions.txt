@@ -1,0 +1,7 @@
+
+  There are three executables
+
+    ./Assignment4   to run the main, interactive, program
+    ./test          to run the automated tournament test
+    ./stats_test    to run the type-vs-type win/lose statistics
+
