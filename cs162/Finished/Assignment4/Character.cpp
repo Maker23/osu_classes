@@ -80,15 +80,21 @@ void Character::Recover()
 {
 	if (Health == Strength) return;
 
-	Health += (int)((float)Strength * (0.3)); // Strong characters recover faster
+  // Differential recovery helps balance the inequity for 
+	// more interesting results (fewer ties)
+	if (Strength < 10 )
+		Health += (int)((float)Strength * (0.5)); 
+	else if (Strength > 16)
+		Health += (int)((float)Strength * (0.4));
+	else 
+		Health += (int)((float)Strength * (0.3));
+
+	// Health can't be below 0 or greater than Strength
 	if (Health < 0) 
-	{
 		Health = 0;
-	}
 	if (Health > Strength) 
-	{
 		Health = Strength;
-	}
+
 	if (VVERBOSE) std::cout << "** Recovery: " << Name << "'s health is now " << Health << std::endl;
 }
 

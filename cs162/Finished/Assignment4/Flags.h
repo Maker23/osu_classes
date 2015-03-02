@@ -1,6 +1,7 @@
 #ifndef FLAG_H
 #define FLAG_H
 
+// Different levels of verbosity or debugging
 #define VERBOSE true
 #define VVERBOSE false
 #define DEBUG false

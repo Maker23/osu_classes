@@ -7,27 +7,9 @@
 #include "Dice.h"
 #include "Player.h"
 
-/*
-
-#include <list>
-#include "Character.h"
-
-class Player 
-{
-public:
-	int TotalScore;
-	std::string Name;
-	std::list<Character*> LineUp;
-	std::stack<Character*> Graveyard;
-	std::list<Character*>::iterator CurrentFighter;
-
-	Player() {};
-	Player(std::string Na);
-	void RetireCharacter(Character * DeadFighter);
-	void Print();
-	Character* NextFighter();
-};
-*/
+/* ********************************************************* 
+ * Constructor
+ * ********************************************************* */
 Player::Player(std::string Na)
 {
 	Name = Na;
@@ -35,11 +17,36 @@ Player::Player(std::string Na)
 	TotalScore = 0;
 }
 
+/* ********************************************************* 
+ *
+ * Getters and setters, including Add/Retire fighter 
+ *
+ * ********************************************************* */
+std::string Player::getName()
+{
+	return Name;
+}
+
+void Player::setScore(int Scr)
+{
+	TotalScore = Scr;
+}
+
+int Player::getScore()
+{
+	return TotalScore;
+}
+
+void Player::AddFighter(Character * NewFighter)
+{
+	LineUp.push_back(NewFighter);
+}
+
 void Player::RetireFighter (Character * DeadFighter)
 {
 	bool found = false;
 	std::list<Character*>::iterator tmpIter;
-	if (!TEST)  std::cout << "	" << "Removing dead fighter " << DeadFighter->getName() 
+	if (!TEST || DEBUG)  std::cout << "	" << "Removing dead fighter " << DeadFighter->getName() 
 		<< " from " << this->Name << "'s Lineup" << std::endl;
 
 	// Pop DeadFighter off the list
@@ -62,8 +69,64 @@ void Player::RetireFighter (Character * DeadFighter)
 	// Push DeadFighter onto the stack
 }
 
+Character* Player::NextFighter()
+{
+	std::list<Character*>::iterator next;
+
+	if (LineUp.size() == 0 ) 
+	{
+		if (DEBUG) std::cout << Name << " NextFighter returning NULL " << std::endl;
+		return NULL;
+	}
+
+	next = CurrentFighter;
+	next++;
+	if (LineUp.size() !=0  && CurrentFighter == LineUp.end() )
+	{
+		if (DEBUG) std::cout << Name << " NextFighter case 1" << std::endl;
+		CurrentFighter = LineUp.begin();
+		return *CurrentFighter;
+	}
+	else if (LineUp.size() !=0  && next == LineUp.end() )
+	{
+		if (DEBUG) std::cout << Name << " NextFighter case 2" << std::endl;
+		CurrentFighter = LineUp.begin();
+		if (DEBUG) std::cout << Name << " returning " << (*CurrentFighter)->getName() << std::endl;
+		return *CurrentFighter;
+	}
+	else 
+	{
+		if (DEBUG) std::cout << Name << " NextFighter case 3" << std::endl;
+		CurrentFighter++;
+		return *CurrentFighter;
+	}
+}
+
+Character * Player::NextDeadFighter()
+{
+	Character * myChar;
+	if ( Graveyard.empty() ) 
+	{
+		return NULL;
+	}
+	else 
+	{
+		myChar = Graveyard.top();
+		Graveyard.pop();
+		return myChar;
+	}
+}
+
+/* ********************************************************* 
+ *
+ * Print and PrintGraveyard
+ *
+ * ********************************************************* */
 void Player::Print()
 {
+
+	if (LineUp.size() == 0 ) 
+		return;
 
 	std::list<Character*>::iterator i;
 
@@ -84,21 +147,6 @@ void Player::Print()
 			<< std::setw(8) << (*i)->Losses
 			<< std::endl; 
 		// (" << *i << ")" << std::endl;
-	}
-}
-
-Character * Player::NextDeadFighter()
-{
-	Character * myChar;
-	if ( Graveyard.empty() ) 
-	{
-		return NULL;
-	}
-	else 
-	{
-		myChar = Graveyard.top();
-		Graveyard.pop();
-		return myChar;
 	}
 }
 
@@ -123,41 +171,5 @@ void Player::PrintGraveyard()
 			<< std::setw(8) << myChar->Losses
 			<< std::endl; 
 		//Graveyard.pop();
-	}
-}
-
-Character* Player::NextFighter()
-{
-	std::list<Character*>::iterator next;
-
-	if (LineUp.size() == 0 ) 
-	{
-		return NULL;
-	}
-
-	if (CurrentFighter == LineUp.end() )
-	{
-		CurrentFighter = LineUp.begin();
-		return *CurrentFighter;
-	}
-	else {
-		next = CurrentFighter;
-		next++;
-	}
-
-	if (LineUp.size() !=0  && CurrentFighter == LineUp.end() )
-	{
-		CurrentFighter = LineUp.begin();
-		return *CurrentFighter;
-	}
-	else if (LineUp.size() !=0  && next == LineUp.end() )
-	{
-		CurrentFighter = LineUp.begin();
-		return *CurrentFighter;
-	}
-	else 
-	{
-		CurrentFighter++;
-		return *CurrentFighter;
 	}
 }

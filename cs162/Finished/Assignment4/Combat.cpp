@@ -31,7 +31,7 @@ int Combat (Character & FighterOne, Character & FighterTwo)
 	Character *Attacker, *Defender;
 	Character *FirstAttacker = NULL;
 
-  if (TEST) {
+  if (!STATISTICS) {
 		// If we're testing reset all players to full strength
 		FighterOne.Reset();
 		FighterTwo.Reset();
@@ -178,8 +178,6 @@ void runTests()
 {
   // Each instance gets a name, but during testing we don't
 	// see the names printed out.
-	Character * TestGoblin;
-	TestGoblin = new Goblin("WTF");
 	Goblin GoblinOne ("Annoying Goblin");
 	Goblin GoblinTwo ("Irritating Goblin Imp");
 	Barbarian BarbOne ("Red Sonja");

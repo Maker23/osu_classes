@@ -30,7 +30,7 @@ instructions:
 	cat instructions.txt
 
 clean:
-	rm -f $(PROJECT_NAME) *.o *~ test stats_test
+	rm -f $(PROJECT_NAME) *.o *~ test stat_test
 
 zip: 
 	zip $(ZIPFILE) $(SOURCES) $(HEADERS) $(DOCS) makefile
