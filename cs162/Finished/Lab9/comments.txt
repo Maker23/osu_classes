@@ -1,0 +1,17 @@
+
+  Hi Jan, I implemented this lab using class templates, not classes.
+  As a result there is only a Templates.h file defining myQueue
+  and myStack, and no Templates.cpp file. This is normal/expected
+
+  As usual, you can run the main program with
+
+	./Lab9
+
+  It will ask for a set of integer inputs AND a second set of string inputs. 
+
+  You can run the fully automated tests with
+
+	./test 
+
+  Enjoy!
+
