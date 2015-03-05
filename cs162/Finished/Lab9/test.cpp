@@ -1,6 +1,7 @@
 #include <iostream>
 
-#include "Templates.h"
+#include "Queue.h"
+#include "Stack.h"
 
 void IntegerQueueTests();
 void IntegerStackTests();
@@ -25,6 +26,8 @@ void StringStackTests()
 		<< "Testing myStack<std::string> *****************" << std::endl;
 
   std::cout << "Is it empty? " << StrStack.isEmpty() << std::endl;
+	std::cout << "Pushing 'bar' " << std::endl;
+	StrStack.push("bar");
 	std::cout << "Pushing 'foo' " << std::endl;
 	StrStack.push("foo");
 	std::cout << "Peeking, should get 'foo': " << StrStack.peek() << std::endl;
@@ -55,9 +58,6 @@ void IntegerStackTests()
 
 	std::cout << "Popping 9 " << std::endl;
 	IntStack.pop();
-	std::cout << "Peeking, should fail or except " << IntStack.peek() << std::endl;
-	std::cout << "Popping, should fail or except " << std::endl;
-	IntStack.pop();
 }
 
 
@@ -85,7 +85,4 @@ void IntegerQueueTests()
 	std::cout << "removeFront" << std::endl;
 	IntQueue.removeFront();
   std::cout << "Is it empty now? " << IntQueue.isEmpty() << std::endl;
-	std::cout << "getFront, should fail or except " << IntQueue.getFront() << std::endl;
-	std::cout << "removeFront, should fail or except " << std::endl;
-	IntQueue.removeFront();
 }

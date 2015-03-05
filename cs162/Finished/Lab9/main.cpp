@@ -11,9 +11,9 @@
 #include <stdexcept>
 #include <climits>
 
-#include "Templates.h"
-
 #define DEBUG false
+#include "Stack.h"
+#include "Queue.h"
 
 #define SPACE 32
 #define COMMA 44

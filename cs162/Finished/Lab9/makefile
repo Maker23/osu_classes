@@ -2,9 +2,9 @@ PROJECT_NAME = Lab9
 MAIN = main.cpp
 TEST = test.cpp
 LIBRARIES =
-HEADERS = Templates.h
+HEADERS = Node.h Queue.h Stack.h 
 DATA = 
-DOCS = 
+DOCS = comments.txt QueueFunc.h StackFunc.h
 SOURCES = $(MAIN) $(TEST) $(LIBRARIES) 
 ZIPFILE = $(PROJECT_NAME).zip
 
