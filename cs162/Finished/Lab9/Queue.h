@@ -1,11 +1,12 @@
+#ifndef DEBUG
+#define DEBUG false
+#endif
+
 #include <iostream>  // for debugging
 #include <stdexcept>
 
 #include "Node.h"
 
-#ifndef DEBUG
-#define DEBUG false
-#endif
 
 #ifndef _QUEUE_H
 #define _QUEUE_H
@@ -35,6 +36,6 @@ public:
 /* ******************************************************** 
    Queue class member functions templates
   ******************************************************** */
-#include "QueueFunc.h"
+#include "QueueFunc.cpp"
 
 #endif // _QUEUE_H

@@ -1,11 +1,15 @@
+#ifndef DEBUG
+#define DEBUG false
+#endif
+
+#ifndef _Stack_H
+#define _Stack_H
+
 #include <iostream>  // for debugging
 #include <stdexcept>
 
 #include "Node.h"
 
-#ifndef DEBUG
-#define DEBUG false
-#endif
 
 /* ******************************************************** 
    Stack class template
@@ -31,4 +35,5 @@ public:
 /* ******************************************************** 
    Stack class member function template
   ******************************************************** */
-#include "StackFunc.h"
+#include "StackFunc.cpp"
+#endif

@@ -1,6 +1,8 @@
 #include <iostream>  // for debugging
 #include <stdexcept>
 
+#include "Node.h"
+
 #ifndef DEBUG
 #define DEBUG false
 #endif
