@@ -1,3 +1,19 @@
+/* vim:ts=2:
+ *
+ *                     Shoshana Abrass
+ *                  CS162 Final Project
+ *                     March 17, 2015
+ *
+ * File name: utilities.cpp
+ *
+ * Overview: 
+ *   General functions used by both main.cpp and test.cpp to run 
+ *   the game.
+ *
+ *
+ *
+ */
+
 #include <iostream>
 #include <string>
 
@@ -7,7 +23,7 @@
 
 
 /* ***************************************************************
- * Utility functions
+ * UpdateGameState - runs after every player turn
  *************************************************************** */
 void UpdateGameState(int &Flags, int &GameClock, Holdall* PlayerBag, AbstractRoom* currentRoom)
 {
@@ -21,10 +37,21 @@ void UpdateGameState(int &Flags, int &GameClock, Holdall* PlayerBag, AbstractRoo
 	{
 		std::cout << "You have " << (GameLength - GameClock) * 5 << " minutes until 4:00" << std::endl;
 	}
+	// If the player is carrying a hat, update the game goal
+  if ( HatInHand(PlayerBag) )
+	{
+		PlayerBag->GameTask[HatIsChosen] = true;
+	}
+	else
+	{
+		PlayerBag->GameTask[HatIsChosen] = false; // Don't put the hat down!
+	}
+
 }
 
 /* ***************************************************************
- *
+ * CheckForTimers - runs after every player turn
+ * TODO: could be called by UpdateGameState instead of from main()?
  *************************************************************** */
 void	CheckForTimers(AbstractRoom ** allRooms, int &GameClock, Holdall * PlayerBag) 
 {
@@ -56,7 +83,7 @@ void	CheckForTimers(AbstractRoom ** allRooms, int &GameClock, Holdall * PlayerBa
 }
 
 /* ***************************************************************
- *
+ * Get Yes or No answer from user
  *************************************************************** */
 bool getUserYN(const char Default)
 {
@@ -81,7 +108,7 @@ bool getUserYN(const char Default)
 		std::cin.getline(inputBuffer,1024); // throw away anything else they typed
 
 	  if ( ! menuOption )
-			menuOption = Default;
+			menuOption = Default; // TODO: Doesn't work, fix.
 	
 		for (int i=0; i<2; i++)
 		{

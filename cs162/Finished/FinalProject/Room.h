@@ -8,14 +8,13 @@
 
 #ifndef _Room_H
 #define _Room_H
-//enum RoomIDs {A, B, C, D, F, G, H, Done };
-enum MenuChoice { N, S, E, W, unknown};
 
+enum MenuChoice { N, S, E, W, unknown};
 
 struct Choice; // Forward declaration
 
 /* ********************************************************
- *
+ * Pure virtual base class AbstractRoom
  * ****************************************************** */
 class AbstractRoom {
 
@@ -24,7 +23,6 @@ protected:
 	std::string Story;
 	bool FirstView;
 
-	virtual Choice getUserMenuChoice(Actions* validActions, std::string TestAction="")=0; // Can't do anything with AbstractRoom
 
 public:
 	void (*EntryFunc)();
@@ -41,12 +39,13 @@ public:
 	void (*TimerFunc)(AbstractRoom * , int );
 
 	// Pure virtual functions
-	virtual Actions Examine(int &counter) = 0; // Can't Examine AbstractRoom
+	virtual std::string getName() = 0;
+	virtual void Print(bool Enigmatic) = 0;
+	virtual Actions Examine(int &counter) = 0;
 	virtual AbstractRoom * NextUserAction(Holdall* PlayerBag) = 0;
 	virtual AbstractRoom * NextUserActionTest(Holdall* PlayerBag, std::string TestAction) = 0;
-	virtual void Print(bool Enigmatic) = 0;
 	virtual AbstractRoom * getNextRoomFromDirection(MenuChoice nextChoice) = 0;
-	virtual std::string getName() = 0;
+	virtual Choice getUserMenuChoice(Actions* validActions, std::string TestAction="")=0; 
 
 	// Functions that are implemented in derived classes
 	virtual void setTimerLimit(int timLimit) {  };
@@ -69,21 +68,19 @@ protected:
 public:						
 	Room(std::string Na, std::string St); // constructor
 	~Room(); // destructor
-	//TODO:  destructor will need to clear the vector of pointers but not delete the things
 
 	// Some of these are public for simplicity of maze setup
 	// See the BuildTheEnvironment functions
-	Actions Examine(int &counter);
-	Choice getUserMenuChoice(Actions* validActions, std::string TestAction="");
+	std::string getName() { return Name;}
 	void Print(bool Enigmatic);
+	void (*TimerFunc)(AbstractRoom * , int );
+	Actions Examine(int &counter);
 	AbstractRoom * NextUserAction(Holdall* PlayerBag);
 	AbstractRoom * NextUserActionTest(Holdall *PlayerBag, std::string TestAction);
 	AbstractRoom * getNextRoomFromDirection(MenuChoice nextChoice);
-	Room * FindByPtr(Thing *);
+	Choice getUserMenuChoice(Actions* validActions, std::string TestAction="");
 	Container * FindByName(std::string);
-	std::string getName() { return Name;}
-	void (*TimerFunc)(AbstractRoom * , int );
-
+	Room * FindByPtr(Thing *);
 
 };
 
@@ -95,11 +92,12 @@ public:
   
 	TimerRoom(std::string Na, std::string St); // constructor
 	~TimerRoom(); // destructor
+
+	int getTimerLimit() { return TimerLimit;}
+	int getTimer() { return Timer;}
 	void (*TimerFunc)(AbstractRoom *, int);
 	void setTimerLimit(int timLimit) { TimerLimit = timLimit;};
 	void setTimer(int tim) { Timer = tim;};
-	int getTimerLimit() { return TimerLimit;}
-	int getTimer() { return Timer;}
 };
 	
 class OutsideRoom:public Room
@@ -110,8 +108,8 @@ public:
 	OutsideRoom(std::string Na, std::string St); // constructor
 	~OutsideRoom(); // destructor
 
-	void setWeather(std::string We) { Weather = We;};
 	std::string getWeather() {return Weather;};
+	void setWeather(std::string We) { Weather = We;};
 };
 	
 struct Choice {

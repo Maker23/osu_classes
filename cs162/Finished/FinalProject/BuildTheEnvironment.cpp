@@ -4,12 +4,12 @@
  *                  CS162 Final Project
  *                     March 17, 2015
  *
- * File name:
+ * File name: BuildTheEnvironment.cpp
  *
- *
- * Purpose:
- *
- *
+ * Overview:
+ *   Initializes new game objects and links them together.  
+ *   Also includes the various UseFunctions, OpenFunctions, 
+ *   and TimerFunctions.
  *
  */
 
@@ -192,10 +192,12 @@ void FillTheRooms(AbstractRoom **allRooms)
 	TeaPot->UseFunc = BrewTheTea;
 	Tea->UseFunc = BrewTheTea;
 
-	Container * TeaChest = new Container("Tea chest","It has a silver escutcheon with a skeleton keyhole.");
+	Container * TeaChest = new Container("Tea chest",
+		"It has a silver escutcheon with a skeleton keyhole.");
 	TeaChest->Open = false; // Locked!
 	TeaChest->OpenFunc = UnlockTeaChest;
 	TeaChest->Weight = 4;   // Light enough to carry
+
 	Container * Sideboard = new Container("Sideboard","");
 	Container * DiningTable = new Container("Dining Room table","");
 
@@ -269,10 +271,6 @@ void FillTheRooms(AbstractRoom **allRooms)
 	HatStand->Contents.push_back(ChicHat);
 	HatStand->Contents.push_back(PrimHat);
 	HatStand->Contents.push_back(BeretHat);
-	FlowerHat->UseFunc = HatOnHead;
-	ChicHat->UseFunc = HatOnHead;
-	PrimHat->UseFunc = HatOnHead;
-	BeretHat->UseFunc = HatOnHead;
 	allRooms[DressingRm]->ContainersHere.push_back(HatStand);
 }
 
@@ -336,28 +334,6 @@ bool GatherHoney(AbstractRoom * currentRoom, Container *PlayerBag)
 		return true;
 	}
  	if (DEBUG_FUNCTION) std::cout << "===== end GatherHoney" << std::endl;
-	return false;
-}
-
-bool CheckTheTime(Container *PlayerBag)
-{
-	Thing *WeHaveTheWatch;
-
-  if (DEBUG_FUNCTION) std::cout << "===== begin CheckTheTime" << std::endl;
-
-	if (PlayerBag == NULL )
-		return false;
-
-	WeHaveTheWatch = PlayerBag->FindByName("Pocket Watch");
-
-	if (WeHaveTheWatch) 
-	{
-		if (DEBUG_FIND) std::cout << "Found the watch by name" << std::endl;
-  	if (DEBUG_FUNCTION) std::cout << "===== end CheckTheTime" << std::endl;
-		return true;
-	}
-	if (DEBUG_FIND) std::cout << "Did not find the watch by name" << std::endl;
-  if (DEBUG_FUNCTION) std::cout << "===== end CheckTheTime" << std::endl;
 	return false;
 }
 
@@ -487,38 +463,6 @@ bool BrewTheTea(AbstractRoom * currentRoom, Container *PlayerBag)
 		return true;
 	}
 }
-
-/* *********************************************************** 
- * UseFunction for all the hats
- * ***********************************************************/
-bool HatOnHead(AbstractRoom * currentRoom, Container *PlayerBag)
-{
-	return false;
-	// The logic here doesn't work
-  if (DEBUG_FUNCTION) std::cout << "===== begin HatOnHead" << std::endl;
-	
-	Container *HatRackPtr = currentRoom->FindByName("Hat stand");
-	bool HatTask = ((Holdall*)PlayerBag)->GameTask[HatIsChosen];
-
-	Thing *HatFoundOnHead;
-  
-	HatFoundOnHead = PlayerBag->FindByName("Enormous flowered hat");
-	if (! HatFoundOnHead) HatFoundOnHead = PlayerBag->FindByName("Very chic cloche");
-	if (! HatFoundOnHead) HatFoundOnHead = PlayerBag->FindByName("Prim straw boater");
-	if (! HatFoundOnHead) HatFoundOnHead = PlayerBag->FindByName("Purple beret");
-
-	if ( ! HatFoundOnHead )
-	{
-		std::cout << "Pick a hat to wear to tea." << std::endl;
-		return false;
-	}
-	else 
-	{
-		std::cout << "You've chosen the most marvelous hat to wear to tea!"<< std::endl;
-		((Holdall*)PlayerBag)->GameTask[HatIsChosen] = true;
-		return true;
-	}
-}
 	
 /* *********************************************************** 
  * UseFunction for the Silver Vase and Flowers
@@ -627,6 +571,43 @@ void RingTheDoorbell(AbstractRoom * currentRoom, int currentTime)
 	
 }
 
+/* *********************************************************** 
+ * Housekeeping functions for UpdateGameState
+ * ***********************************************************/
+bool HatInHand(Container *PlayerBag)
+{
+	Thing *WeHaveAHat;
+
+	WeHaveAHat = PlayerBag->FindByName("Enormous flowered hat");
+	if ( ! WeHaveAHat ) WeHaveAHat = PlayerBag->FindByName("Very chic cloche");
+	if ( ! WeHaveAHat ) WeHaveAHat = PlayerBag->FindByName("Prim straw boater");
+	if ( ! WeHaveAHat ) WeHaveAHat = PlayerBag->FindByName("Purple beret");
+
+	return (WeHaveAHat);
+}
+
+/* **************************************** */
+bool CheckTheTime(Container *PlayerBag)
+{
+	Thing *WeHaveTheWatch;
+
+  if (DEBUG_FUNCTION) std::cout << "===== begin CheckTheTime" << std::endl;
+
+	if (PlayerBag == NULL )
+		return false;
+
+	WeHaveTheWatch = PlayerBag->FindByName("Pocket Watch");
+
+	if (WeHaveTheWatch) 
+	{
+		if (DEBUG_FIND) std::cout << "Found the watch by name" << std::endl;
+  	if (DEBUG_FUNCTION) std::cout << "===== end CheckTheTime" << std::endl;
+		return true;
+	}
+	if (DEBUG_FIND) std::cout << "Did not find the watch by name" << std::endl;
+  if (DEBUG_FUNCTION) std::cout << "===== end CheckTheTime" << std::endl;
+	return false;
+}
 /* **************************************** */
 // I ended up not using this function
 std::list<Thing*> EquipThePlayer()

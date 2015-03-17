@@ -1,3 +1,18 @@
+/* vim:ts=2:
+ *
+ *                     Shoshana Abrass
+ *                  CS162 Final Project
+ *                     March 17, 2015
+ *
+ * File name: test.cpp
+ *
+ *
+ * Overview:
+ *   Automated testing of the program. 
+ *
+ *
+ *
+ */
 #include <iostream>
 #include <string>
 
@@ -10,24 +25,26 @@
 //enum MenuChoice { N, S, E, W, unknown};
 //char MenuOptions[] = {'N', 'S', 'E', 'W'};
 
-#define P1Len	9
-
 
 void UpdateGameState(int &Flags, int &GameClock, Holdall* PlayerBag, AbstractRoom* currentRoom);
 void	CheckForTimers(AbstractRoom ** allRooms, int &GameClock, Holdall* PlayerBag);
 
-MenuChoice pathOne[P1Len] = {W, N, S, E, E, N, E, S, N};
-MenuChoice pathTwo[6] = {E, S, E, N, E, S}; // Two fails
+MenuChoice pathOne[9] = {W, N, S, E, E, N, E, S, N};
+MenuChoice pathTwo[6] = {E, S, E, N, E, S}; // Should fail
 MenuChoice pathThree[13] = {N, E, E, N, W, E, S, E, N, S, N, E, S};
 
-std::string ActOne[100] = 
-	{"S", "2", "N", "E", "4",
-	 "W", "W", "N", "5", "6",
-	 "8", "S", "E", "E", "N",
-	 "2", "5", "6","11", "13", // 13 is the bowl, 10 is the oven
-	 "10","7", "E", "6", "W",
-	 "11"
-	 };
+// Wins the game
+std::string ActOne[31] = 
+	{"S", "2", "N", "7", 			// Pick the roses, fill the vase
+	 "E", "3", 								// Get the silver key
+	 "W", "W", "5", 					// Get the watch
+	 "N", "5", "6", "8", 			// Get the tea and the teapot
+	 "S", "E", "E", "N",			// Move to the kitchen
+	 "2", 										// Brew the tea
+	 "5", "6","11", "13", 		// Mix the scones
+	 "10", 										// put the scones in the oven
+	 "7", "E", "6", "W",			// Get the honey
+	 "11", "S", "W", "Q"};
 
 // Test opening the tea chest
 std::string ActTwo[15] = 
@@ -41,12 +58,14 @@ std::string ActThree[13] =
 	 "11", "8",  "T", "T", "T", 
 	 "8", "S", "W"};
 
-void PathTestOne(AbstractRoom * Start, bool Enigmatic);
-void PathTestTwo(AbstractRoom * Start, bool Enigmatic);
-void PathTestThree(AbstractRoom * Start, bool Enigmatic);
-void Unlock();
+// Test overfilling the player's bag
+std::string ActFour[10] = 
+	{"3", "5", "6", "W", "6", 
+	 "7", "N", "8", "10", "Q",} ;
 
-void ActTest(AbstractRoom * Start, Holdall * PlayerBag, std::string *ActList, int numActs);
+void PathTest(AbstractRoom * const Start, bool Enigmatic, MenuChoice *path, int numSteps);
+void ActTest(AbstractRoom * Start, Holdall &PlayerBag, std::string *ActList, int numActs);
+void UnitTests();
 
 void FunctionPointerTest();
 bool FunctionOne(Container * unused=NULL);
@@ -67,43 +86,29 @@ main()
 	Holdall PlayerBag("Linen bag");
 	PlayerBag.Capacity = 10;
  
-  currentRoom = Start;
-	currentRoom->Print(Enigmatic);
 
-
-	/* ***************************************/
-
-	std::cout << std::endl;
-	std::cout << "=================   Unit Tests  ==================" << std::endl;
-	Container Bureau("Bureau", "It's a Chippendale");
-	Bureau.Print();
-	Container TeaChest("Tea chest", "It has an ornate silver escutcheon around a keyhole.");
-
-
-	TeaChest.Examine(counter);
-
-	Thing* SilverSpoon = new Thing("silver spoon", "");
-	Thing* SilverCanister = new Thing("silver canister full of tea", "");
-
-	TeaChest.Contents.push_back(SilverSpoon);
-	TeaChest.Contents.push_back(SilverCanister);
-	TeaChest.Print();
-	TeaChest.Examine(counter);
-
-	std::cout << "Hit <return> to continue: ";
-	getline(std::cin, nothing);
-//	ActTest(Start, &PlayerBag, ActOne, 15);
-//	ActTest(Start, &PlayerBag, ActTwo, 13);
-	ActTest(Start, &PlayerBag, ActThree, 13);
+  PathTest(Start, false, pathOne, 9);
 	std::cout << "Hit <return> to continue: ";
 	getline(std::cin, nothing);
 
-	PathTestOne(Start, Enigmatic);
+
+	ActTest(Start, PlayerBag, ActOne, 31);
+	// Only one action test can be run at a time for now,
+	// since the game state changes and isn't reset.
+	// Simply uncomment the test you want to run.
+	//
+	//  ActTest(Start, PlayerBag, ActFour, 10);
+	//	ActTest(Start, &PlayerBag, ActTwo, 13);
+	//	ActTest(Start, &PlayerBag, ActThree, 13);
+	std::cout << std::endl << "Hit <return> to continue: ";
+	getline(std::cin, nothing);
+
+	UnitTests();
 	std::cout << "Hit <return> to continue: ";
 	getline(std::cin, nothing);
+
+
 	FunctionPointerTest();
-	//PathTestTwo(Start, Enigmatic);
-	//PathTestTwo(Start, Enigmatic);
 
 	for (int i=0; i < 8; i++)
 	{
@@ -114,12 +119,32 @@ main()
 /*****************************************************************/
 /*****************************************************************/
 
+void UnitTests()
+{
+	std::cout << "=================   Unit Tests  ==================" << std::endl;
+	int counter=0;
+
+	Container Bureau("Bureau", "It's a Chippendale");
+	Bureau.Print();
+	Container TeaChest("Tea chest", "It has an ornate silver escutcheon around a keyhole.");
+
+	TeaChest.Examine(counter);
+
+	Thing* SilverSpoon = new Thing("silver spoon", "");
+	Thing* SilverCanister = new Thing("silver canister full of tea", "");
+
+	TeaChest.Contents.push_back(SilverSpoon);
+	TeaChest.Contents.push_back(SilverCanister);
+	TeaChest.Print();
+	TeaChest.Examine(counter);
+}
 
 void FunctionPointerTest()
 {
 
 	int myInt =0 ;
 
+	std::cout << "=========== Function Pointer Tests  ==============" << std::endl;
 	Container TeaChest("Tea chest", "Set up for testing.");
 	Thing* oneThing = new Thing("silver spoon", "");
 	TeaChest.Contents.push_back(oneThing);
@@ -139,10 +164,6 @@ void FunctionPointerTest()
 	TeaChest.OpenFunc = FunctionTwo;
 	TeaChest.Examine(myInt);
 
-	std::cout << "===   Test four: TeaChest is locked, OpenFunc is UnlockTeaChest" << std::endl;
-	TeaChest.OpenFunc = UnlockTeaChest;
-	TeaChest.Examine(myInt);
-
 }
 
 bool FunctionOne(Container * unused)
@@ -157,54 +178,20 @@ bool FunctionTwo(Container * unused)
 }
 /*****************************************************************/
 /*****************************************************************/
-void Unlock()
-{
-	std::cout << "let's pretend I've unlocked the container" << std::endl;
-}
 /*****************************************************************/
-void ActTest(AbstractRoom * Start, Holdall * PlayerBag, std::string *ActList, int numActs)
+/*****************************************************************/
+
+void PathTest(AbstractRoom * const Start, bool Enigmatic, MenuChoice *path, int numSteps)
 {
 	int counter;
 	AbstractRoom * currentRoom;
-	Choice chosenAction;
-	int GameClock = 0;
-	int Flags = 0;
-	std::string nothing;
-
-	std::cout << "=================   Action Test  ==================" << std::endl;
 	currentRoom = Start;
-	for (counter = 0; counter < numActs; counter++)
-	{
-		currentRoom->Print(false);
-		currentRoom = currentRoom->NextUserActionTest(PlayerBag, ActList[counter]);
-		UpdateGameState(Flags,GameClock,PlayerBag, currentRoom);
-		CheckForTimers(allRooms, GameClock,PlayerBag);
-		if (counter > 3 )
-		{
-			std::cout << "Step " << counter << ", hit <return> to continue: ";
-			getline(std::cin, nothing);
-		}
-	}
-	if (currentRoom == Start)
-		std::cout << "Congratulations, you're back where you started!" << std::endl;
-	else 
-	{
-		std::cout << "Uh Oh. ActList failed. Better look into that..." << std::endl;
-	}
-}
-/*****************************************************************/
 
-void PathTestOne(AbstractRoom * Start, bool Enigmatic)
-{
-	int counter;
-	AbstractRoom * currentRoom;
-
-	std::cout << "====================   Test one  =====================" << std::endl;
-	currentRoom = Start;
-	for (counter = 0; counter < P1Len; counter++)
+	std::cout << "====================  Path Test  =====================" << std::endl;
+	for (counter = 0; counter < numSteps; counter++)
 	{
 		currentRoom->Print(Enigmatic);
-		currentRoom = currentRoom->getNextRoomFromDirection(pathOne[counter]); // TODO
+		currentRoom = currentRoom->getNextRoomFromDirection(path[counter]); 
 	}
 	if (currentRoom == Start)
 		std::cout << "Congratulations, you're back where you started!" << std::endl;
@@ -215,89 +202,71 @@ void PathTestOne(AbstractRoom * Start, bool Enigmatic)
 }
 
 /*****************************************************************/
-
-void PathTestTwo(AbstractRoom * Start, bool Enigmatic)
-{
-	int counter;
-	AbstractRoom * currentRoom;
-
-	std::cout << "====================   Test two  =====================" << std::endl;
-	currentRoom = Start->North; // By convention
-	for (counter = 0; counter < 6; counter++)
-	{
-		currentRoom->Print(Enigmatic);
-		currentRoom = currentRoom->getNextRoomFromDirection(pathTwo[counter]); // TODO
-	}
-	if (currentRoom == Start)
-		std::cout << "Congratulations, you escaped the maze!" << std::endl;
-	else 
-	{
-		std::cout << "Uh Oh. pathTwo failed. Better look into that..." << std::endl;
-	}
-}
-
-void PathTestThree(AbstractRoom * Start, bool Enigmatic)
-{
-	int counter;
-	AbstractRoom * currentRoom;
-
-	std::cout << "===================   Test three  ====================" << std::endl;
-	currentRoom = Start->North; // By convention
-	for (counter = 0; counter < 13; counter++)
-	{
-		currentRoom->Print(Enigmatic);
-		currentRoom = currentRoom->getNextRoomFromDirection(pathThree[counter]); // TODO
-	}
-	if (currentRoom == Start)
-		std::cout << "Congratulations, you escaped the maze!" << std::endl;
-	else 
-	{
-		std::cout << "Uh Oh. pathThree failed. Better look into that..." << std::endl;
-	}
-}
-
-
 /*****************************************************************/
-bool NotgetUserYN(const char Default)
+/*****************************************************************/
+
+void ActTest(AbstractRoom * Start, Holdall &PlayerBag, std::string *ActList, int numActs)
 {
-	enum YNMenuChoice { y, n, YNunknown};
-	char YNMenuOptions[] = {'y', 'n'};
-	char menuOption;
-	char inputBuffer[1024];
+	bool Enigmatic = false; // TODO: convert this to flags
+	AbstractRoom * currentRoom;
+	//AbstractRoom* allRooms[NumRooms];
+	int GameClock = 0;
+	int Flags = 0;
 
+	PlayerBag.Capacity = 10;
+	std::cout << "Player bag capacity = " << PlayerBag.Capacity << std::endl;
 
-  if (TEST) return true;
+	//AbstractRoom* Start = BuildTheHouse(allRooms);
+	//FillTheRooms(allRooms);
 
-	bool Result=false;
+	//PlayerBag.Contents = EquipThePlayer();
 
-	YNMenuChoice menuChoice = YNunknown;
+	int MoveCounter = 0;
+	std::string nothing;
+	currentRoom = Start;
 
-  do {
-  	menuOption = std::cin.get(); // get the first character
-		std::cin.getline(inputBuffer,1024); // throw away anything else they typed
-
-	  if ( ! menuOption )
-			menuOption = Default;
-	
-		for (int i=0; i<2; i++)
+	while (GameClock < GameLength)
+	{
+		std::cout << std::endl;
+		currentRoom->Print(Enigmatic);
+		currentRoom = currentRoom->NextUserActionTest(&PlayerBag, ActList[MoveCounter++]);
+		//currentRoom = currentRoom->NextUserAction(&PlayerBag);
+		if (currentRoom == 0 ) break;
+		if (MoveCounter >= numActs) break;
+		if ( 0 )
 		{
-			if (tolower(menuOption) == YNMenuOptions[i])
-			{
-				menuChoice = (YNMenuChoice) i;
-			}
+			// Turn this on for step-by-step walkthroughs
+			std::cout << "Step " << MoveCounter << ", hit <return> to continue: ";
+			getline(std::cin, nothing);
 		}
-		switch (menuChoice){
-			case y:
-				Result = true;
-				break;
-			case n:
-				break;
-			case YNunknown:
-				std::cout << "Please enter Y or N: ";
-				break;
-		}
+		UpdateGameState(Flags, GameClock, &PlayerBag, currentRoom);
+		CheckForTimers(allRooms, GameClock, &PlayerBag);
 	}
-	while (menuChoice == YNunknown);
-	return (Result);
+	if (GameClock >= GameLength)
+		std::cout << "It's 4:00. Your friends have arrived. You are out of time." << std::endl;
+
+	int points = PlayerBag.getGameTaskStatus();
+
+	std::cout << std::endl;
+	if (points ==2)
+		std::cout 
+			<< "Success!" << std::endl
+			<< "You met the rudimentary needs for a nice tea." << std::endl
+			<< "Maybe next time you could do a little more to make it special." << std::endl
+			<< "Your friends still like you. They'll come again." << std::endl;
+	else if (points >2)
+		std::cout 
+			<< "Success!" << std::endl
+		 	<< "Congratulations, you made a superbly nice tea!" << std::endl
+			<< "Your friends tweet about it. Their pictures go viral." << std::endl
+			<< "You're invited to BBC headquarters to meet the cast of" << std::endl
+			<< "Pride&Prejudice. They hire you as a consulting writer."<< std::endl;
+  else
+		std::cout 
+			<< "You did not succeed :(" << std::endl
+			<< "You didn't meet the rudimentary needs for a nice tea." << std::endl
+			<< "Your Tea Party is a failure. Your friends tweet about it." << std::endl
+			<< "You are banned for life from Jane Austen Society meetings." << std::endl
+			<< "You start reading Edward Gorey and listening to emo music." << std::endl;
+
 }
-/*****************************************************************/

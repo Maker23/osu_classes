@@ -1,0 +1,8 @@
+
+  ./FinalProject  to run the interactive game
+  ./test          to run the automated testing
+
+  Please see the comments at the top of each .cpp file for
+  detailed information.
+
+

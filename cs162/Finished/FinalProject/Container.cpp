@@ -1,3 +1,30 @@
+/* vim:ts=2:
+ *
+ *                     Shoshana Abrass
+ *                  CS162 Final Project
+ *                     March 17, 2015
+ *
+ * File name: Container.cpp
+ *
+ * Overview:
+ *   General functions that work on containers.
+ *
+ * 	 Container::Examine prints the contents of a container, recursively,
+ * 	 and returns a Thing* vector.
+ *
+ * 	 Container::FindByPtr searches for an object by pointer and returns
+ * 	 the holding container if it's found, NULL if not
+ *
+ * 	 Container::FindByName searches for an object by name and returns
+ * 	 a pointer to the object if found, NULL if not
+ *
+ * 	 Holdall:: functions apply to the derived class which is the player's
+ * 	 bag (actually all the player's data). In particular, 
+ *   Holdall::getGameTaskStatus checks how many GameTask goals the
+ *   player has accomplished
+ *
+ */
+
 #include <iostream> // for debugging
 #include <list>
 #include <string>
@@ -78,8 +105,9 @@ std::vector<Thing*> Container::Examine(int &counter, bool verbose, bool silent)
   if ( ! Open )
 	{
   	if (OpenFunc != NULL) {
-			if (DEBUG_EXAMINE) std::cout << "DEBUG: Running OpenFunc " << OpenFunc << " on " 
-					<< this->Name << " (Container::Examine)" << std::endl;
+			if (DEBUG_EXAMINE) std::cout << "DEBUG: Running OpenFunc " 
+				<< OpenFunc << " on " << this->Name << " (Container::Examine)" 
+				<< std::endl;
 		
 			// We're not really trying to open the container here; we 
 			// just want to get any useful printout from the OpenFunc, 
@@ -88,7 +116,8 @@ std::vector<Thing*> Container::Examine(int &counter, bool verbose, bool silent)
 			bool Success = OpenFunc((Container*) NULL); 
 			if (!Success && !silent) 
 			{
-				std::cout << "	    The " << this->Name << " won't open. Maybe it's locked." << std::endl;
+				std::cout << "	    The " << this->Name 
+					<< " won't open. Maybe it's locked." << std::endl;
 				return AllContents;
 			}
 		}
@@ -132,7 +161,8 @@ std::vector<Thing*> Container::Examine(int &counter, bool verbose, bool silent)
 			}
 		}
 	}
-  if (DEBUG_EXAMINE) std::cout  << "===== end   Container::Examine counter=" << counter << std::endl;
+  if (DEBUG_EXAMINE) std::cout  << "===== end   Container::Examine counter=" 
+		<< counter << std::endl;
 	return AllContents;
 }
 
