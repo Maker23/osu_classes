@@ -12,32 +12,34 @@
 class Container : public Thing {
 public:
 
+	Container (std::string Na, std::string St); // constructor
+	virtual ~Container (); // constructor
+
 	std::list<Thing*> Contents;
 	int 	Capacity; // How much can it hold
 	bool 	Open;
 
-
 	bool (*OpenFunc)(Container*);
-	bool (*UseFunc)(Room *, Container*);
+	bool (*UseFunc)(AbstractRoom *, Container*);
 	virtual void Print();
-	virtual std::vector<Thing*> Examine(int &counter, bool verbose=true);
+	virtual std::vector<Thing*> Examine(int &counter, bool verbose=true, bool silent=false);
 	virtual Container * FindByPtr(Thing *);
 	virtual Thing * FindByName(std::string);
 	virtual int getCapacity() { return Capacity;}
-
-	//Container (){};
-	Container (std::string Na, std::string St);
 };
 
 
 class Holdall : public Container {
 public:
-
-	std::vector<Thing*> Examine(int &counter, bool verbose=false);
-	int getAvailableCapacity();
-
-	int getCapacity() { return Capacity;}
 	Holdall(std::string Na);
+	~Holdall();
+
+	bool GameTask[numGameTasks]; // GameTasks are defined in utilities.h
+
+	int getGameTaskStatus();
+	int getAvailableCapacity();
+	int getCapacity() { return Capacity;}
+	std::vector<Thing*> Examine(int &counter, bool verbose=false, bool silent=false);
 };
 
 

@@ -6,10 +6,10 @@
 #ifndef _THING_H
 #define _THING_H
 
-#include "main.h"
+#include "utilities.h"
 
 class Container; // Forward declaration
-class Room; // Forward declaration
+class AbstractRoom; // Forward declaration
 
 class Thing {
 public:
@@ -19,10 +19,10 @@ public:
 	bool isContainer;
 	bool Open;
 
-	bool (*UseFunc)(Room *, Container *);	//Does this thing do something? Most do not
+	bool (*UseFunc)(AbstractRoom *, Container *);	//Does this thing do something? Most do not
 	bool (*OpenFunc)(Container *); // Does this thing open? Most do not
 	virtual void Print();
-	virtual std::vector<Thing*> Examine(int &counter, bool verbose=true);
+	virtual std::vector<Thing*> Examine(int &counter, bool verbose=true, bool silent=false);
 	virtual int getWeight() {return Weight;};
 	Thing (std::string Na, std::string St);
 

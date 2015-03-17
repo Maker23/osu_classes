@@ -12,40 +12,71 @@
 
 #define P1Len	9
 
+
+void UpdateGameState(int &Flags, int &GameClock, Holdall* PlayerBag, AbstractRoom* currentRoom);
+void	CheckForTimers(AbstractRoom ** allRooms, int &GameClock, Holdall* PlayerBag);
+
 MenuChoice pathOne[P1Len] = {W, N, S, E, E, N, E, S, N};
 MenuChoice pathTwo[6] = {E, S, E, N, E, S}; // Two fails
 MenuChoice pathThree[13] = {N, E, E, N, W, E, S, E, N, S, N, E, S};
 
-void PathTestOne(Room * Start, bool Enigmatic);
-void PathTestTwo(Room * Start, bool Enigmatic);
-void PathTestThree(Room * Start, bool Enigmatic);
+std::string ActOne[100] = 
+	{"S", "2", "N", "E", "4",
+	 "W", "W", "N", "5", "6",
+	 "8", "S", "E", "E", "N",
+	 "2", "5", "6","11", "13", // 13 is the bowl, 10 is the oven
+	 "10","7", "E", "6", "W",
+	 "11"
+	 };
+
+// Test opening the tea chest
+std::string ActTwo[15] = 
+	{"E", "3",  "W", "6", "W", 
+	 "5", "6",  "N", "7", "8",
+	 "10", "S", "E", "E", "N", };
+
+// Test baking scones
+std::string ActThree[13] = 
+	{"E", "N",  "3", "4", "9", 
+	 "11", "8",  "T", "T", "T", 
+	 "8", "S", "W"};
+
+void PathTestOne(AbstractRoom * Start, bool Enigmatic);
+void PathTestTwo(AbstractRoom * Start, bool Enigmatic);
+void PathTestThree(AbstractRoom * Start, bool Enigmatic);
 void Unlock();
+
+void ActTest(AbstractRoom * Start, Holdall * PlayerBag, std::string *ActList, int numActs);
 
 void FunctionPointerTest();
 bool FunctionOne(Container * unused=NULL);
 bool FunctionTwo(Container * unused=NULL);
 bool UnlockTeaChest(Container * unused=NULL);
+AbstractRoom* allRooms[24]; 
 
 /*****************************************************************/
 main()
 {
 	bool Enigmatic = false;
 	int counter=0;
-	Room * currentRoom;
-	Room* allRooms[24]; 
-	Room *Start = BuildTheHouse(allRooms);
+	AbstractRoom * currentRoom;
+	AbstractRoom *Start = BuildTheHouse(allRooms);
  	FillTheRooms(allRooms);
+	std::string nothing;
+
+	Holdall PlayerBag("Linen bag");
+	PlayerBag.Capacity = 10;
  
   currentRoom = Start;
-
 	currentRoom->Print(Enigmatic);
 
+
+	/* ***************************************/
+
 	std::cout << std::endl;
+	std::cout << "=================   Unit Tests  ==================" << std::endl;
 	Container Bureau("Bureau", "It's a Chippendale");
 	Bureau.Print();
-
-/* ***************************************/
-
 	Container TeaChest("Tea chest", "It has an ornate silver escutcheon around a keyhole.");
 
 
@@ -59,7 +90,17 @@ main()
 	TeaChest.Print();
 	TeaChest.Examine(counter);
 
+	std::cout << "Hit <return> to continue: ";
+	getline(std::cin, nothing);
+//	ActTest(Start, &PlayerBag, ActOne, 15);
+//	ActTest(Start, &PlayerBag, ActTwo, 13);
+	ActTest(Start, &PlayerBag, ActThree, 13);
+	std::cout << "Hit <return> to continue: ";
+	getline(std::cin, nothing);
+
 	PathTestOne(Start, Enigmatic);
+	std::cout << "Hit <return> to continue: ";
+	getline(std::cin, nothing);
 	FunctionPointerTest();
 	//PathTestTwo(Start, Enigmatic);
 	//PathTestTwo(Start, Enigmatic);
@@ -120,10 +161,43 @@ void Unlock()
 {
 	std::cout << "let's pretend I've unlocked the container" << std::endl;
 }
-void PathTestOne(Room * Start, bool Enigmatic)
+/*****************************************************************/
+void ActTest(AbstractRoom * Start, Holdall * PlayerBag, std::string *ActList, int numActs)
 {
 	int counter;
-	Room * currentRoom;
+	AbstractRoom * currentRoom;
+	Choice chosenAction;
+	int GameClock = 0;
+	int Flags = 0;
+	std::string nothing;
+
+	std::cout << "=================   Action Test  ==================" << std::endl;
+	currentRoom = Start;
+	for (counter = 0; counter < numActs; counter++)
+	{
+		currentRoom->Print(false);
+		currentRoom = currentRoom->NextUserActionTest(PlayerBag, ActList[counter]);
+		UpdateGameState(Flags,GameClock,PlayerBag, currentRoom);
+		CheckForTimers(allRooms, GameClock,PlayerBag);
+		if (counter > 3 )
+		{
+			std::cout << "Step " << counter << ", hit <return> to continue: ";
+			getline(std::cin, nothing);
+		}
+	}
+	if (currentRoom == Start)
+		std::cout << "Congratulations, you're back where you started!" << std::endl;
+	else 
+	{
+		std::cout << "Uh Oh. ActList failed. Better look into that..." << std::endl;
+	}
+}
+/*****************************************************************/
+
+void PathTestOne(AbstractRoom * Start, bool Enigmatic)
+{
+	int counter;
+	AbstractRoom * currentRoom;
 
 	std::cout << "====================   Test one  =====================" << std::endl;
 	currentRoom = Start;
@@ -140,11 +214,12 @@ void PathTestOne(Room * Start, bool Enigmatic)
 	}
 }
 
+/*****************************************************************/
 
-void PathTestTwo(Room * Start, bool Enigmatic)
+void PathTestTwo(AbstractRoom * Start, bool Enigmatic)
 {
 	int counter;
-	Room * currentRoom;
+	AbstractRoom * currentRoom;
 
 	std::cout << "====================   Test two  =====================" << std::endl;
 	currentRoom = Start->North; // By convention
@@ -161,10 +236,10 @@ void PathTestTwo(Room * Start, bool Enigmatic)
 	}
 }
 
-void PathTestThree(Room * Start, bool Enigmatic)
+void PathTestThree(AbstractRoom * Start, bool Enigmatic)
 {
 	int counter;
-	Room * currentRoom;
+	AbstractRoom * currentRoom;
 
 	std::cout << "===================   Test three  ====================" << std::endl;
 	currentRoom = Start->North; // By convention
@@ -183,12 +258,15 @@ void PathTestThree(Room * Start, bool Enigmatic)
 
 
 /*****************************************************************/
-bool getUserYN(const char Default)
+bool NotgetUserYN(const char Default)
 {
 	enum YNMenuChoice { y, n, YNunknown};
 	char YNMenuOptions[] = {'y', 'n'};
 	char menuOption;
 	char inputBuffer[1024];
+
+
+  if (TEST) return true;
 
 	bool Result=false;
 

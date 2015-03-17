@@ -3,14 +3,16 @@
 #include <string>
 #include <list>
 
-#include "main.h"
+#include "utilities.h"
 #include "Room.h"
 
 
 /* ***********************************************************
- * Constructor
+ * Constructors
  * ********************************************************* */
-Room::Room(std::string Na, std::string St) {
+
+Room::Room(std::string Na, std::string St): AbstractRoom() 
+{
 	Name=Na;
 	Story=St;
 	North = NULL;
@@ -18,15 +20,55 @@ Room::Room(std::string Na, std::string St) {
 	South = NULL;
 	West = NULL;
 
-	firstView = true;
-	entryFunc = NULL;
+	FirstView = true;
+	EntryFunc = NULL;
+}
+
+TimerRoom::TimerRoom(std::string Na, std::string St): Room(Na, St) 
+{
+	Timer = 0;
+	TimerLimit = 0;
+	TimerFunc = NULL;
+}
+
+OutsideRoom::OutsideRoom(std::string Na, std::string St) : Room (Na, St)
+{
+	Weather = "";
+}
+
+/* ***********************************************************
+ * Destructors
+ * ********************************************************* */
+Room::~Room()
+{
+	std::list<Container*>::iterator iterCont;
+	std::list<Thing*>::iterator iterThing;
+
+	for (iterCont=ContainersHere.begin(); iterCont != ContainersHere.end(); iterCont++)
+	{
+		delete (*iterCont);
+	}
+	for (iterThing=ThingsHere.begin(); iterThing != ThingsHere.end(); iterThing++)
+	{
+		delete (*iterThing);
+	}
+}
+
+TimerRoom::~TimerRoom()
+{
+	// No dynamic memory beyond the Room base class
+}
+
+OutsideRoom::~OutsideRoom()
+{
+	// No dynamic memory beyond the Room base class
 }
 
 /*************************************************************
  * NextUserAction is the primary public function for Room:: 
  *
  * ********************************************************* */
-Room * Room::NextUserAction(Holdall *PlayerBag)
+AbstractRoom * Room::NextUserAction(Holdall *PlayerBag)
 {
 	int counter = 1; // Begin each turn with 1
 	std::vector<Thing*> backpackContents;
@@ -34,6 +76,7 @@ Room * Room::NextUserAction(Holdall *PlayerBag)
 	Choice 	chosenAction;
 	Room *nextRoom;
 
+  if (DEBUG_FUNCTION) std::cout << "===== begin Room::NextUserAction" << std::endl;
 	backpackContents = PlayerBag->Examine(counter, true);
 	possibleActions = this->Examine(counter);
 	possibleActions.Things.insert(possibleActions.Things.begin(), backpackContents.begin(),backpackContents.end());
@@ -44,6 +87,30 @@ Room * Room::NextUserAction(Holdall *PlayerBag)
 		ChangeAThing(chosenAction.ActOnThing, PlayerBag);
 	}
 
+  if (DEBUG_FUNCTION) std::cout << "===== end Room::NextUserAction" << std::endl;
+	return chosenAction.nextRoom;
+}
+
+AbstractRoom * Room::NextUserActionTest(Holdall *PlayerBag, std::string TestAction)
+{
+	int counter = 1; // Begin each turn with 1
+	std::vector<Thing*> backpackContents;
+	Actions possibleActions;
+	Choice 	chosenAction;
+	Room *nextRoom;
+
+  if (DEBUG_FUNCTION) std::cout << "===== begin Room::NextUserActionTest" << std::endl;
+	backpackContents = PlayerBag->Examine(counter, true);
+	possibleActions = this->Examine(counter);
+	possibleActions.Things.insert(possibleActions.Things.begin(), backpackContents.begin(),backpackContents.end());
+	chosenAction = getUserMenuChoice(&possibleActions, TestAction);
+
+	if ( chosenAction.ActOnThing != NULL )
+	{
+		ChangeAThing(chosenAction.ActOnThing, PlayerBag);
+	}
+
+  if (DEBUG_FUNCTION) std::cout << "===== end Room::NextUserActionTest" << std::endl;
 	return chosenAction.nextRoom;
 }
 
@@ -69,10 +136,11 @@ Room * Room::NextUserAction(Holdall *PlayerBag)
  * ********************************************************* */
 void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 {
-	Container * ActOnCont; // Unbelievable
+	Container * ActOnCont = (Container*) ActOnThing; // Unbelievable
 	
+  if (DEBUG_FUNCTION) std::cout << "===== begin Room::ChangeAThing" << std::endl;
 	if (DEBUG_ROOM) std::cout << "DEBUG: Here's where the magic happens!" << std::endl
-		<< "DEBUG: Doing something to " << ActOnCont->Name << " in Room " << this->Name 
+		<< "DEBUG: Doing something to " << ActOnThing->Name <<  " in Room " << this->Name 
 		<< " with holdall " << PlayerBag->Name << std::endl;
 
 	bool OpenSuccess = false;
@@ -90,7 +158,6 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 	if (DEBUG_ROOM) std::cout << "ActOnCont->Open = " << ActOnCont->Open << std::endl;
 	if (DEBUG_ROOM) std::cout << "ActOnCont->OpenFunc = " << ActOnCont->OpenFunc << std::endl;
 	if (DEBUG_ROOM) std::cout << "ActOnCont->UseFunc = " << ActOnCont->UseFunc << std::endl;
-	int foo=0;
   if ( ActOnCont->isContainer && ! ActOnCont->Open )
 	{
   	if (ActOnCont->OpenFunc != NULL) 
@@ -115,10 +182,9 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 		}
 	}
 	if (OpenSuccess) return;
-	if (DEBUG_ROOM) std::cout << "Keep going after open try" << std::endl;
+	if (DEBUG_ROOM || DEBUG_FUNCTION) std::cout << "Keep going after OPEN try" << std::endl;
 
 	// OFFER TO USE
- 	//ActOnThing = (Thing *) ActOnCont;
  	if (ActOnThing->UseFunc != NULL) 
 	{
 		if (DEBUG_ROOM) std::cout << "ActOnThing UseFunc" << std::endl;
@@ -137,16 +203,20 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 				<< " (Room::ChangeAThing)" << std::endl;
 	}
 	if (UseSuccess) return;
-	if (DEBUG_ROOM) std::cout << "Keep going after use try" << std::endl;
+	if (DEBUG_ROOM || DEBUG_FUNCTION) std::cout 
+		<< "Keep going after USE try" << std::endl;
 	
-	// Return or keep going?  TODO: make a decision
-	// Maybe IF we've opened or used it, print it.  Then return to menu. Else continue
+	// IF we've succesfully opened or used it, return to menu. Else continue
 
+  if (DEBUG_FUNCTION) std::cout
+		<< "===== start the search Room::ChangeAThing" << std::endl;
 	// Print the thing
+	int foo=0;
 	ActOnCont->Examine(foo);
 	if ( OnPerson  )
 	{
-		if (DEBUG_ROOM) std::cout << "DEBUG: Found " << ActOnCont->Name << " on Player " << PlayerBag->Name;
+		if (DEBUG_ROOM || DEBUG_FUNCTION) std::cout 
+			<< "DEBUG: Found " << ActOnCont->Name << " on Player " << PlayerBag->Name;
 		std::cout << "You are carrying the " << ActOnCont->Name << "." << std::endl;
 		std::cout << "Do you want to put the " << ActOnCont->Name << " down? [Yn]: ";
 		Answer = getUserYN('Y');
@@ -165,8 +235,11 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 	}
 	else if ( InRoom )
 	{
+  	if (DEBUG_ROOM || DEBUG_FUNCTION) std::cout 
+			<< "===== found InRoom, Room::ChangeAThing" << std::endl;
 		// The object is inside the room, and probably a container
-		if (DEBUG_ROOM) std::cout << "DEBUG: Found " << ActOnCont->Name << " in Room " << this->Name;
+		if (DEBUG_ROOM) std::cout << "DEBUG: Found " 
+			<< ActOnCont->Name << " in Room " << this->Name;
 		std::cout << "Do you want to pick the " << ActOnCont->Name << " up? [Yn]: ";
 		Answer = getUserYN('Y');
 		if (Answer){
@@ -181,7 +254,6 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 			else
 			{
 				int roomLeft = PlayerBag->getAvailableCapacity();
-				std::cout << "DEBUGGING: roomLeft is " << roomLeft <<std::endl;
 				if (ItemWeight > roomLeft)
 				{
 					std::cout << "You don't have enough room in the " << PlayerBag->Name 
@@ -205,21 +277,25 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 	}
 	else 
 	{
+  	if (DEBUG_ROOM || DEBUG_FUNCTION) std::cout 
+			<< "===== inside a container inside the room, Room::ChangeAThing" 
+			<< std::endl;
 		// The object is inside a container inside the room.
   	if ( ContainersHere.size() != 0 ) 
 		{
 			for (iterCont=ContainersHere.begin(); iterCont != ContainersHere.end(); iterCont++)
 			{
-				if (DEBUG_ROOM) std::cout << "DEBUG: Looking in " <<  (*iterCont)->Name << " for " << ActOnCont->Name << std::endl;
+				if (DEBUG_ROOM) std::cout << "DEBUG: Looking in " 
+					<<  (*iterCont)->Name << " for " << ActOnCont->Name << std::endl;
 				if ( InContainer = (*iterCont)->FindByPtr(ActOnCont) )
 				{
-					if (DEBUG_ROOM) std::cout << "DEBUG: Found " << ActOnCont->Name << " in Container " << (*iterCont)->Name;
+					if (DEBUG_ROOM) std::cout << "DEBUG: Found " 
+						<< ActOnCont->Name << " in Container " << (*iterCont)->Name;
 					std::cout << "Do you want to pick the " << ActOnCont->Name <<" up? [Yn]: ";
 					Answer = getUserYN('Y');
 					if (Answer){
 						int ItemWeight = ActOnCont->getWeight();
 						int roomLeft = PlayerBag->getAvailableCapacity();
-						std::cout << "DEBUGGING: roomLeft is " << roomLeft <<std::endl;
 						if (ItemWeight > roomLeft)
 						{
 							std::cout << "You don't have enough room in the " << PlayerBag->Name 
@@ -230,7 +306,6 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 						{
 							InContainer->Contents.remove(ActOnCont);
 							PlayerBag->Contents.push_front(ActOnCont);
-							//std::cout << "oh SNAP!!!" << std::endl;
 						}
 					}
 					break;
@@ -241,10 +316,10 @@ void Room::ChangeAThing(Thing* ActOnThing, Holdall * PlayerBag)
 }
 
 /*****************************************************************/
-Room * Room::getNextRoomFromDirection(MenuChoice nextChoice)
+AbstractRoom * Room::getNextRoomFromDirection(MenuChoice nextChoice)
 {
 	bool error = false;
-	Room * nextRoom = NULL;
+	AbstractRoom * nextRoom = NULL;
 
 	/*
  	if (currentRoom == NULL ) 
@@ -285,28 +360,32 @@ Room * Room::getNextRoomFromDirection(MenuChoice nextChoice)
 /*****************************************************************/
 void Room::Print(bool Enigmatic)
 {
-	std::string Conjunction = "";
-	int counter = 1;
+	std::string Weather = getWeather();
   
 	std::cout << "You are in ";
 	Enigmatic? std::cout << "a room": std::cout << this->Name;
 	std::cout << "." << std::endl;
-	std::cout << this->Story;
-	std::cout << std::endl;
+	if ( (this->Story.compare("") !=0 ) && FirstView)
+	{
+		std::cout << this->Story;
+		std::cout << std::endl;
+	}
+	if ( Weather.compare("") !=0 && FirstView)
+	{
+		std::cout << "The weather is " << getWeather() << std::endl;
+	}
 
 	std::list<Thing*> itemList;
 	std::vector<char> moveList;
 
-	if (firstView) 
+	if (FirstView) 
 	{
-		//if ( ! Enigmatic) 
-			//this->Examine(counter);
-			//itemList = this->Examine(counter);
-		firstView = false;
+		FirstView = false;
 	}
 }
 Room * Room::FindByPtr(Thing * SeekingThingPtr)
 {
+  if (DEBUG_FUNCTION) std::cout << "===== begin Room::FindByPtr" << std::endl;
   if ( ThingsHere.size() != 0 ) 
 	{
 		std::list<Thing*>::iterator iterThing;
@@ -329,7 +408,8 @@ Room * Room::FindByPtr(Thing * SeekingThingPtr)
 }
 Container * Room::FindByName(std::string SeekingThingName)
 {
-	// Only looks for conatiners.  Sigh
+  if (DEBUG_FUNCTION) std::cout << "===== begin Room::FindByName" << std::endl;
+	// Only looks for containers.  Sigh
   if ( ContainersHere.size() != 0 ) 
 	{
 		std::list<Container*>::iterator iterCont;
@@ -356,7 +436,9 @@ Actions Room::Examine(int &counter)
 
 	bool Enigmatic = false;//TODO
 
-  if (DEBUG_EXAMINE) std::cout  << "DEBUG: beginning Room::Examine " << std::endl;
+  if (DEBUG_EXAMINE || DEBUG_FUNCTION) std::cout 
+		<< "===== begin Room::Examine" << std::endl;
+	
   if ( ContainersHere.size() != 0 ) 
 	{
 		std::cout << "	You see  " << std::endl;
@@ -407,18 +489,20 @@ Actions Room::Examine(int &counter)
 	}
 	myActions.Things = thingList;
 	myActions.Moves = moveList;
-  if (DEBUG_EXAMINE) std::cout  << "DEBUG: ending    Room::Examine " << std::endl;
+  if (DEBUG_EXAMINE || DEBUG_FUNCTION) std::cout 
+		<< "===== end Room::Examine" << std::endl;
 
 	return myActions;
 }
 
 /*****************************************************************/
-Choice Room::getUserMenuChoice(Actions* validActions)
+Choice Room::getUserMenuChoice(Actions* validActions, std::string TestAction)
 {
 
 	char MoveOptions[] = {'N', 'S', 'E', 'W'};
 	char HelpOption = 'H';
 	char QuitOption = 'Q';
+	char TestNullOption = 'T';
 
 	char menuLetter;
 	Choice chosenAction;
@@ -451,7 +535,19 @@ Choice Room::getUserMenuChoice(Actions* validActions)
 
 	chosenAction.nextRoom = this; // By default, the room stays the same
 
-	getline(std::cin, inputString);
+	if (TEST)
+	{
+		std::cout << "TESTING: User Menu Choice is " << TestAction << std::endl;
+		inputString = TestAction;
+	}
+	else
+	{
+		getline(std::cin, inputString);
+	}
+
+	if ( inputString.compare("") == 0 )
+		return chosenAction;
+
 	std::strcpy (inputChars, inputString.c_str());
 	if ( ( inputChars[0] >= 65 && inputChars[0] <=90)
 		|| ( inputChars[0] >= 97 && inputChars[0] <=122))
@@ -459,15 +555,22 @@ Choice Room::getUserMenuChoice(Actions* validActions)
 		if (DEBUG_MENU) std::cout << "This seems to be a letter: "<< inputChars[0] << std::endl;
 		menuLetter = toupper(inputChars[0]);
 
-		if (menuLetter == HelpOption )
+		if (menuLetter == TestNullOption )
 		{
-			std::cout << "You seem to remember that you have something to do today, but you" << std::endl; // TODO
+			// Do Nothing.  This allows timers to cycle forward whle the user waits
+		}
+		else if (menuLetter == HelpOption )
+		{
+			// TODO: do we have the notebook?
+			std::cout << "You seem to remember that you have something to do today, but you" << std::endl; 
 			std::cout << "can't remember what it is.  You're usually pretty organized. Maybe" << std::endl;
-			std::cout << "you left yourself a note." << std::endl;
+			std::cout << "you left yourself a note. Look around." << std::endl;
 		}
 		else if (menuLetter == QuitOption )
 		{
-			std::cout << "Quitting" << std::endl; // TODO
+			std::cout << "Quitting..." << std::endl; //
+			chosenAction.nextRoom = (AbstractRoom *)0;
+			return chosenAction;
 		}
 
 		for (int j=0; j < validActions->Moves.size(); j++)

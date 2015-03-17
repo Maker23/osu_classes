@@ -24,7 +24,7 @@ void Thing::Print ()
 }
 
 /* ********************************************************* */
-std::vector<Thing*> Thing::Examine(int &counter, bool verbose)
+std::vector<Thing*> Thing::Examine(int &counter, bool verbose, bool silent)
 {
 	std::vector<Thing*> Nothing;
 

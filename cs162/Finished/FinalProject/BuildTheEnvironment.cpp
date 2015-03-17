@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "main.h"
+#include "utilities.h"
 #include "Room.h"
 #include "Container.h"
 #include "Thing.h"
@@ -11,32 +11,33 @@
  *
  *
  *****************************************************************/
-Room * BuildTheHouse(Room **allRooms)
+AbstractRoom * BuildTheHouse(AbstractRoom **allRooms)
 {
 
   if (DEBUG_FUNCTION) std::cout << "===== begin BuildTheHouse" << std::endl;
 	std::string blank = ""; // useful for multi-line strings
 
-	allRooms[FrontLawn]	= new Room("the front lawn", 
+	allRooms[FrontLawn]	= new OutsideRoom("the front lawn", 
 																 "The house is to the North.");
-	allRooms[FrontHall]	= new Room("the Front Hall", 
+	allRooms[FrontHall]	= new TimerRoom("the Front Hall", 
 																 "There are doorways on every side.");
 	allRooms[Library] 	= new Room("the Library", 
 																 blank 
 																 + "The shelves are full of books and knicknacks.\n"
-																 + "A large book lies on the oaken desk.\nYou see another room beyond");
+																 + "A large book lies on the oaken desk.\n"
+																 + "You see another room beyond");
 	allRooms[SunRm] 		= new Room("the Sunroom", 
 																 blank
 																 + "The sun is shining through the windows.\n"
 																 + "This looks like a lovely place to have tea!");
 	allRooms[DiningRm]	= new Room("the formal Dining room", "");
-	allRooms[Kitchen]		= new Room("the Kitchen", 
+	allRooms[Kitchen]		= new TimerRoom("the Kitchen", 
 																 blank
 																 + "There are doors on every side.\n"
 																 + "There is a cupboard, a refrigerator, and an oven.");
 	allRooms[Pantry]		= new Room("the Pantry", 
 																 "There are shelves full of food!");
-	allRooms[Garden]		= new Room("the Garden", 
+	allRooms[Garden]		= new OutsideRoom("the Garden", 
 																 blank 
 																 + "Beautiful flowers surround you.\n"
 																 + "You hear a constant gentle buzzing.");
@@ -47,8 +48,6 @@ Room * BuildTheHouse(Room **allRooms)
 	allRooms[Hallway]		= new Room("a hallway", "");
 	allRooms[Bedrm]			= new Room("the bedroom", "");
 	allRooms[DressingRm]= new Room("the Dressing Room", "");
-	
-  Room * Start = allRooms[FrontHall];
 
 	allRooms[FrontLawn]->East		= allRooms[Garden];
 	allRooms[FrontLawn]->North	= allRooms[FrontHall];
@@ -92,11 +91,13 @@ Room * BuildTheHouse(Room **allRooms)
 	allRooms[DressingRm]->South	= allRooms[Hallway];
 	allRooms[DressingRm]->West	= allRooms[Bedrm];
 
+  AbstractRoom * Start = allRooms[FrontHall];
+
   if (DEBUG_FUNCTION) std::cout << "===== end BuildTheHouse" << std::endl;
 	return Start;
 }
 
-void FillTheRooms(Room **allRooms)
+void FillTheRooms(AbstractRoom **allRooms)
 {
   if (DEBUG_FUNCTION) std::cout << "===== begin FillTheRooms" << std::endl;
 	std::string Instructions = WriteTheInstructions();
@@ -104,8 +105,12 @@ void FillTheRooms(Room **allRooms)
 
 	/* Front Hall  *******************************************/
 	Thing* Umbrella = new Thing("Umbrella","Don't open it inside!");
-	Thing* SilverVase = new Thing("Silver Vase","This would look nice with some flowers in it.");
 	Thing* GameInstructions = new Thing("Notebook", Instructions);
+
+	Container* SilverVase = new Container("Silver Vase",
+		"This would look nice with some flowers in it.");
+	SilverVase->UseFunc = FillTheVase;
+	SilverVase->Weight = 2;
 
 	Container* UmbrellaStand = new Container("Umbrella stand", "");
 	UmbrellaStand->Contents.push_back(Umbrella);
@@ -115,18 +120,25 @@ void FillTheRooms(Room **allRooms)
 
 	allRooms[FrontHall]->ContainersHere.push_back(UmbrellaStand);
 	allRooms[FrontHall]->ContainersHere.push_back(FrontHallTable);
-	allRooms[FrontHall]->ThingsHere.push_back(SilverVase);
+	allRooms[FrontHall]->ContainersHere.push_back(SilverVase);
 
+	//allRooms[FrontHall]->setTimerLimit(GameLength-1); // TODO
+	allRooms[FrontHall]->setTimerLimit(1); // TODO
+	allRooms[FrontHall]->TimerFunc = RingTheDoorbell;
 
 	/* Kitchen    ********************************************/
 	Thing * Flour = new Thing("Flour","");
 	Thing * Cream = new Thing("Cream","");
 	Thing * Sugar = new Thing("Sugar","");
 	Thing * Jam = new Thing("Jam","");
-	Thing * Jar = new Thing("Glass Jar", "");
-	Thing *	MixingBowl = new Thing("Mixing bowl","I wonder if we have the ingredients for scones?");
+	Thing *	MixingBowl = new Thing("Mixing bowl",
+		"I wonder if we have the ingredients for scones?");
 
 	MixingBowl->UseFunc = MixTheScones;
+
+	Container * Jar = new Container("Glass Jar", "");
+	Jar->UseFunc = GatherHoney;
+	Jar->Weight = 1;
 
 	Container* Fridge = new Container("Refrigerator","");
 	Fridge->Contents.push_back(Cream);
@@ -139,7 +151,8 @@ void FillTheRooms(Room **allRooms)
 	Container* DishCupboard = new Container("Dish Cupboard", "");
 	DishCupboard->Contents.push_back(Jar);
 
-	Container* Oven = new Container("Oven","It's nice and hot and ready to bake something.");
+	Container* Oven = new Container("Oven",
+		"It's nice and hot and ready to bake something.");
 	Oven->UseFunc = BakeTheScones;
 
 	allRooms[Kitchen]->ContainersHere.push_back(Cupboard);
@@ -153,6 +166,7 @@ void FillTheRooms(Room **allRooms)
 	Thing * Tea = new Thing("Tea canister", "Mmmm... smells like yunnan red!");
 	Thing * TeaPot = new Thing("Silver teapot", "");
 	TeaPot->Weight = 2; 
+	TeaPot->UseFunc = BrewTheTea;
 
 	Container * TeaChest = new Container("Tea chest","It has a silver escutcheon with a skeleton keyhole.");
 	TeaChest->Open = false; // Locked!
@@ -193,19 +207,21 @@ void FillTheRooms(Room **allRooms)
 	/* Front Lawn ********************************************/
 	Thing* Roses = new Thing("Roses","Deep velvety red roses growing by the armful.");
 	allRooms[FrontLawn]->ThingsHere.push_back(Roses);
+	allRooms[FrontLawn]->setWeather("warm and sunny, with a bit of a breeze");
 
 
 	/* Garden     ********************************************/
 	Thing* SweetPeas = new Thing("Sweet peas","They're in bloom. The colors are gorgeous!");
 	Thing* Honey = new Thing("Honey","Fresh from the comb.");
+	Honey->UseFunc = GatherHoney;
 
 	Container* Hive = new Container("Bee hive","The bees look friendly");
 	Hive->Contents.push_back(Honey);
-	Hive->Open = false;
-	Hive->OpenFunc = GatherHoney;
+	Hive->UseFunc = GatherHoney;
 
 	allRooms[Garden]->ContainersHere.push_back(Hive);
 	allRooms[Garden]->ThingsHere.push_back(SweetPeas);
+	allRooms[Garden]->setWeather("warm and sunny");
   if (DEBUG_FUNCTION) std::cout << "===== end FillTheRooms" << std::endl;
 }
 
@@ -231,24 +247,37 @@ bool UnlockTeaChest(Container *PlayerBag)
 	return false;
 }
 
-bool GatherHoney(Container *PlayerBag)
+bool GatherHoney(AbstractRoom * currentRoom, Container *PlayerBag)
 {
-	Thing *WeHaveTheJar;
+	Thing *JarPtr = NULL;
+	Thing *HivePtr = NULL;
+	Thing *HoneyPtr = NULL;
 
   if (DEBUG_FUNCTION) std::cout << "===== begin GatherHoney" << std::endl;
 	if (PlayerBag == NULL )
 		return false;
 
-	WeHaveTheJar = PlayerBag->FindByName("Glass Jar");
+	JarPtr = PlayerBag->FindByName("Glass Jar");
+	HivePtr = currentRoom->FindByName("Bee hive");
 
-	if (WeHaveTheJar) 
+	if (HivePtr)
+		HoneyPtr = ((Container*) HivePtr)->FindByName("Honey");
+
+	if (JarPtr && HivePtr && HoneyPtr) 
 	{
 		if (DEBUG_FIND) std::cout << "Found the Jar by name" << std::endl;
+		((Container*) HivePtr)->Contents.remove(HoneyPtr);
+		((Container*) JarPtr)->Contents.push_back(HoneyPtr);
+		((Holdall*)PlayerBag)->GameTask[HoneyIsGathered] = true;
   	if (DEBUG_FUNCTION) std::cout << "===== end GathrHoney" << std::endl;
 		return true;
 	}
-	std::cout << "	You need something to put the honey into. Maybe an empty jar?" << std::endl;
-  if (DEBUG_FUNCTION) std::cout << "===== end GatherHoney" << std::endl;
+	else if ( HoneyPtr && !JarPtr)
+	{
+		std::cout << "	You need something to put the honey into. Maybe an empty jar?" << std::endl;
+		return true;
+	}
+ 	if (DEBUG_FUNCTION) std::cout << "===== end GatherHoney" << std::endl;
 	return false;
 }
 
@@ -274,34 +303,168 @@ bool CheckTheTime(Container *PlayerBag)
 	return false;
 }
 
-bool BakeTheScones(Room *currentRoom, Container *PlayerBag)
+bool BakeTheScones(AbstractRoom *currentRoom, Container *PlayerBag)
 {
-	Thing *WeHaveTheScones;
+	int timerMax;
+	int timerCurrent;
+	Thing *PlayerHasTheScones;
+	Thing *SconesInTheOven;
 	Thing *OvenPtr;
+
   if (DEBUG_FUNCTION) std::cout << "===== begin BakeTheScones" << std::endl;
 
 	if (PlayerBag == NULL )
 		return false;
 
-	WeHaveTheScones = PlayerBag->FindByName("Uncooked Scones");
+	timerMax = currentRoom->getTimerLimit();
+	timerCurrent = currentRoom->getTimer();
+	OvenPtr = currentRoom->FindByName("Oven");
+	PlayerHasTheScones = PlayerBag->FindByName("Uncooked Scones");
+	//std::cout << "DEBUGGING timer currenta= " << timerCurrent << std::endl;
 
-	if (WeHaveTheScones) 
+	if (PlayerHasTheScones) 
 	{
 		if (DEBUG_FIND) std::cout << "Found the scones by name" << std::endl;
   	if (DEBUG_FUNCTION) std::cout << "===== end BakeTheScones" << std::endl;
 		std::cout << "You put the scones in the oven. They will take 20 minutes to bake." << std::endl;
-		std::cout << "You set a timer." << std::endl;
-		PlayerBag->Contents.remove(WeHaveTheScones);
-		OvenPtr = currentRoom->FindByName("Oven");
-		((Container *) OvenPtr)->Contents.push_back(WeHaveTheScones);
+		currentRoom->setTimerLimit(4);
+		timerMax = currentRoom->getTimerLimit();
+		if (DEBUG_USE) std::cout << "Setting a timer, timerMax = " << timerMax << std::endl;
+		if ( timerMax )
+		{
+			std::cout << "You set a timer." << std::endl;
+		}
+		PlayerBag->Contents.remove(PlayerHasTheScones);
+		PlayerHasTheScones->Name = "Cooking Scones";
+		PlayerHasTheScones->Story = "On a baking sheet";
+		std::string blank = "";
+		((Container *) OvenPtr)->Contents.push_back(PlayerHasTheScones);
+		((Container *) OvenPtr)->Story = blank + "Scones are baking. ";
 		return true;
+	}
+
+  // Look for scones in the oven 
+	SconesInTheOven = ((Container*) OvenPtr)->FindByName("Cooking Scones");
+	if (! SconesInTheOven) SconesInTheOven = ((Container * )OvenPtr)->FindByName("Scones");
+	if (! SconesInTheOven) SconesInTheOven = ((Container * )OvenPtr)->FindByName("Burnt Scones");
+
+	if (! SconesInTheOven )
+	{
+		// No scones in the oven? If the timer is on, turn it off
+		if (currentRoom ->getTimer())
+		{
+			std::cout << "Turning off the Oven timer." << std::endl;
+			currentRoom->setTimer(0);
+			return true;
+		}
+		// Else do nothing.
+		return false;
+	}
+	// Scones are in the oven - see below
+	else if ( timerMax && (timerCurrent < timerMax)) 
+	{
+		std::cout << "The Scones aren't finished baking" << std::endl
+			<< "You might want to leave them in the oven" << std::endl;
+		return false;
+	}
+	else if ( timerMax && (timerCurrent > (timerMax +2))) 
+	{
+		std::string blank = "";
+		((Container *) OvenPtr)->Story = blank + "Scones are burning. ";
+		std::cout << "The Scones are burning!" << std::endl
+			<< "Take them out of the oven!" << std::endl;
+		((Holdall*)PlayerBag)->GameTask[SconesAreBaked] = false;
+		SconesInTheOven->Name = "Burnt Scones";
+  	if (DEBUG_FUNCTION) std::cout << "===== end BakeTheScones" << std::endl;
+		return false;
+	}
+	else if ( timerMax )
+	{
+		((Container *) OvenPtr)->Story = "";
+		SconesInTheOven->Name = "Scones";
+		std::cout << "The Scones are done!" << std::endl
+			<< "Take them out of the oven!" << std::endl;
+  	if (DEBUG_FUNCTION) std::cout << "===== end BakeTheScones" << std::endl;
+		((Holdall *)PlayerBag)->GameTask[SconesAreBaked] = true;
+		return false;
 	}
 	if (DEBUG_FIND) std::cout << "Did not find the scones by name" << std::endl;
   if (DEBUG_FUNCTION) std::cout << "===== end BakeTheScones" << std::endl;
 	return false;
 }
 
-bool MixTheScones(Room * currentRoom, Container *PlayerBag)
+bool BrewTheTea(AbstractRoom * currentRoom, Container *PlayerBag)
+{
+  if (DEBUG_FUNCTION) std::cout << "===== begin BrewTheTea" << std::endl;
+	Thing * TeaPtr = PlayerBag->FindByName("Tea canister");
+	Thing * TeaPotPtr = PlayerBag->FindByName("Silver teapot");
+
+	if ( ! TeaPtr)
+	{
+		std::cout << "You need tea to use a teapot." << std::endl;
+		return false;
+	}
+	else if ((currentRoom->getName()).compare("the Kitchen") != 0 )
+	{
+		std::cout << "Where were you planning to find boiling water?" << std::endl
+			<< "You need to be in the Kitchen to brew tea." << std::endl;
+		return false;
+	}
+	else 
+	{
+		std::cout << "You have made some delicious tea. Mmmm... caffeine...."<< std::endl;
+		((Holdall*)PlayerBag)->GameTask[TeaIsBrewed] = true;
+
+		PlayerBag->Contents.remove(TeaPtr);
+		PlayerBag->Contents.remove(TeaPotPtr);
+		currentRoom->ThingsHere.push_back(TeaPotPtr);
+		currentRoom->ThingsHere.push_back(TeaPtr);
+
+		return true;
+	}
+}
+	
+bool FillTheVase(AbstractRoom * currentRoom, Container *PlayerBag)
+{
+  if (DEBUG_FUNCTION) std::cout << "===== begin FillTheVase" << std::endl;
+
+	if ( ((Holdall*)PlayerBag)->GameTask[FlowersArePicked] == true)
+	{
+	 	// You can only fill the vase once :)
+		return false;
+	}
+
+	Thing * RosePtr = PlayerBag->FindByName("Roses");
+	Thing * SweetPeaPtr = PlayerBag->FindByName("Sweet peas");
+	Thing * VasePtr = currentRoom->FindByName("Silver Vase");
+
+	if (RosePtr) 
+	{
+		std::cout << "You fill the vase with roses. This will look stunning" 
+			<< std::endl << "on the tea table" << std::endl;
+		((Holdall*)PlayerBag)->GameTask[FlowersArePicked] = true;
+		PlayerBag->Contents.remove(RosePtr);
+		((Container*)VasePtr)->Contents.push_back(RosePtr);
+		return true;
+	}
+	else if (SweetPeaPtr)
+	{
+		std::cout << "You fill the vase with sweet peas. They will smell delicious" 
+			<< std::endl << "on the tea table" << std::endl;
+		((Holdall*)PlayerBag)->GameTask[FlowersArePicked] = true;
+		PlayerBag->Contents.remove(SweetPeaPtr);
+		((Container*)VasePtr)->Contents.push_back(SweetPeaPtr);
+		return true;
+	}
+	else
+	{
+		std::cout << "The vase is empty. You could fill it with flowers." << std::endl;
+		return false;
+	}
+
+  if (DEBUG_FUNCTION) std::cout << "===== end FillTheVase" << std::endl;
+}
+bool MixTheScones(AbstractRoom * currentRoom, Container *PlayerBag)
 {
   if (DEBUG_FUNCTION) std::cout << "===== begin MixTheScones" << std::endl;
 
@@ -309,7 +472,6 @@ bool MixTheScones(Room * currentRoom, Container *PlayerBag)
 	Thing * CreamPtr = PlayerBag->FindByName("Cream");
 	Thing * SugarPtr = PlayerBag->FindByName("Sugar");
 
-	Thing * Scones = new Thing("Uncooked Scones","Scone dough on a cookie sheet. Ready to Bake!");
 
 	if (FlourPtr && CreamPtr && SugarPtr)
 	{
@@ -317,19 +479,41 @@ bool MixTheScones(Room * currentRoom, Container *PlayerBag)
 		std::cout << "You mix....." << std::endl;
 		sleep(1);
 		std::cout << "	mixing is done! You spoon the dough onto a baking sheet." << std::endl;
+		Thing * Scones = new Thing("Uncooked Scones","Scone dough on a cookie sheet. Ready to Bake!");
+		Scones->UseFunc = BakeTheScones;
+		PlayerBag->Contents.push_back(Scones);
 
+		// For simplicity we delete these from the game
 		PlayerBag->Contents.remove(FlourPtr);
 		PlayerBag->Contents.remove(SugarPtr);
 		PlayerBag->Contents.remove(CreamPtr);
-		PlayerBag->Contents.push_back(Scones);
+		delete (FlourPtr);
+		delete (SugarPtr);
+		delete (CreamPtr);
+
 		return true;
 	}
   if (DEBUG_FUNCTION) std::cout << "===== end MixTheScones" << std::endl;
 	std::cout << "	You don't have all the ingredients to mix scones." 
 		<< std::endl << "	If only we had a recipe..." << std::endl;
-	return false;
+	return true;
 }
 
+void RingTheDoorbell(AbstractRoom * currentRoom, int currentTime)
+{
+	TimerRoom *DoorbellRoom = (TimerRoom *)currentRoom;
+	int timerMax = currentRoom->getTimerLimit();
+
+	if (currentTime < timerMax)
+		return;
+
+	std::cout << "The Front Doorbell rings. Your friends are here for tea!" << std::endl;
+	// Just ring once
+	currentRoom->setTimerLimit(0);
+	
+}
+
+// I ended up not using this function
 std::list<Thing*> EquipThePlayer()
 {
 	std::list<Thing*> myThings;
@@ -353,9 +537,9 @@ std::string WriteTheInstructions()
 	"\n" +
 	"To Do:\n" +
 	"X  Send invitations\n" +
+	"   Brew tea\n" +
 	"   Bake scones\n" +
-	"   Pick flowers\n" +
-	"   Fill teapot\n" +
+	"   Pick flowers, fill vase\n" +
 	"   Choose a hat!\n";
 
 	return blank;
@@ -377,7 +561,7 @@ std::string GetTheRecipeForScones()
 	"\n" +
 	"   Put all ingredients into mixing bowl; stir.\n" +
 	"   Put Scones into pre-heated oven\n" +
-	"   Bake for 40 minutes.\n";
+	"   Bake for 20 minutes.\n";
 
 	return blank;
 }
