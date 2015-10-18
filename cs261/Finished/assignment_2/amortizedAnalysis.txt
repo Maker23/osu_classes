@@ -1,0 +1,88 @@
+
+ __ __ __ __ __ __ __ __
+|__|__|__|__|__|__|__|__|  1 - 8 push operations
+ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
+|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__| 9 - 16 push operations
+
+ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __ __
+|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__| 
+|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__| 17 - 32 push operations
+
+
+1.a. How many cost units are spent in the entire process of performing 32 
+  consecutive push operations on an empty array which starts out at 
+  capacity 8, assuming that the array will double in capacity each time 
+  a new item is added to an already full dynamic array? 
+
+  The cost is equal to 32 (one for each push operation) plus 2 (one
+  for each operation to create a new empty array ) plus 8+16
+  (for the two times the array is copied into a new array). 
+  TOTAL COST UNITS = 32 + 2 + 8 + 16 = 58
+  
+
+1.b. As N (ie. the number of pushes) grows large, under this strategy
+  for resizing, what is the big-oh complexity for a push?  
+
+  As N becomes increasingly large, copy operations happen less frequently.
+  Mathematically the complexity can be described as
+
+  	O(1) + if(log2(N) == {a whole number}){ O (N)}
+
+  This is written in our texts as O(1)+, to indicate that the operation
+  for a push will almost always be O(1) but this is not guaranteed to 
+  be an upper bound
+
+
+2. How many cost units are spent in the entire process of performing 32 
+  consecutive push operations on an empty array which starts out at 
+  capacity 8, assuming that the array will grow by a constant 2 spaces 
+  each time a new item is added to an already full dynamic array? 
+  As N (ie. the number of pushes) grows large, under this strategy for 
+  resizing, what is the big-oh complexity for a push?  
+   __ __ __ __ __ __ __ __
+  |__|__|__|__|__|__|__|__|  1 - 8 push operations
+   __ __ __ __ __ __ __ __ __ __
+  |__|__|__|__|__|__|__|__|__|__|  9 - 10 push operations
+   __ __ __ __ __ __ __ __ __ __ __ __
+  |__|__|__|__|__|__|__|__|__|__|__|__|  11 - 12 push operations
+
+  ... etc
+
+  The cost of all the copy operations is
+  8 + 10 + 12 + 14 + 16 + 18 + 20 + 22 + 24 + 26 + 28 + 30
+  and there is one unit cost for each push, so add another 32.
+
+  This can be written as
+  N + (N-2) + (N-4) ... 8
+
+  which is on the order of  (N^2 + N)/4 (according to the internetz
+  and math).  For Big-O notation we drop all but the most significant
+  term, therefore the complexity can be written as O(N^2)
+
+
+3. Suppose that a dynamic array stack doubles its capacity when it is full, 
+  and shrinks (on Pop only) its capacity by half when the array is half full 
+  or less. Can you devise a sequence of N push() and pop() operations 
+  which will result in poor performance (O(N^2) total cost)? How might you 
+  adjust the array's shrinking policy to avoid this? (Hint: You may assume 
+  that the initial capacity of the array is N/2.)
+
+  1. push (N/2) elements onto the array. (or N/2 + 1, not clear from the
+     instructions - but it doesn't really matter since this term will
+     simplify out at the end)
+     Array doubles, N/2 elements are copied. Cost: N.
+  2. pop 1 elements. 
+     Array shrinks by half, N/2 elements are copied. Cost: N/2
+  3. push 1 element. 
+     Array doubles, N/2 elements are copied. Cost: N/2.
+  
+  Repeat steps 2,3  for (N/2) iterations. Total cost:
+
+  N + (N/2)(N/2)  == N + N2/4 
+
+  For Big-O notation we drop all but the most significant
+  term, therefore the complexity becomes O(N^2)
+
+  In order to avoid this, choose a different threshold for shrinking the
+  array. I don't think it matters what it is as long as it's smaller than
+  1/2 - maybe 1/4 full or 1/20 full, whichever will suit the usage better.
