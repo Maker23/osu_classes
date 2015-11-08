@@ -1,3 +1,14 @@
+/* vim ts=2
+ 
+ Shoshana Abrass
+ abrasss@oregonstate.edu
+ CS261 Fall 2015
+
+ Assignment 4
+ File: bst.c
+ Implementation of the binary search tree data structure.
+ 
+ */
 #include <stdio.h>
 #include <assert.h>
 #include "bst.h"

@@ -1,5 +1,10 @@
 /* vim ts=2
+ 
+ Shoshana Abrass
+ abrasss@oregonstate.edu
+ CS261 Fall 2015
 
+ Assignment 4
  File: bst.c
  Implementation of the binary search tree data structure.
  
@@ -161,6 +166,18 @@ void addBSTree(struct BSTree *tree, TYPE val)
 }
 
 
+/*----------------------------------------------------------------------------*/
+/*
+ 
+ Recursive helper function to find a particular value in a binary search tree.
+ params: cur = a node in a tree
+         val = the value to search for
+
+ return: a Node pointer 
+     (NULL if the value is not found, a valid pointer address if it is found)
+
+ */
+/*----------------------------------------------------------------------------*/
 struct Node * findNode (struct Node *cur, TYPE val)
 {
 	if (cur == NULL )
@@ -172,6 +189,7 @@ struct Node * findNode (struct Node *cur, TYPE val)
 		cur = findNode (cur->right, val);
 	return cur;
 }
+
 /*
  function to determine if the binary search tree contains a particular element
  HINT: You have to use the compare() function to compare values.
@@ -181,7 +199,6 @@ struct Node * findNode (struct Node *cur, TYPE val)
 			val is not null
  post:	none
  */
-
 /*----------------------------------------------------------------------------*/
 int containsBSTree(struct BSTree *tree, TYPE val)
 {

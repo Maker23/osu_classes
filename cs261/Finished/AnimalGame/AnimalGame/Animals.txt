@@ -1,0 +1,32 @@
+_Q6:Does it attack and sink ships?:Kraken:Mermaid:
+_Q4:Does it have fur?:Selkie:_Q6:
+_Q3:Does it live in the ocean?:_Q4:Loch Ness Monster:
+_Q12:Does it breathe fire?:Dragon:Griffin:
+_Q11:Is it carnivorous?:_Q12:Pegasus:
+_Q17:Does it live in the snow?:Yeti:Bigfoot:
+_Q20:Does it have one horn?:Unicorn:Jackalope:
+_Q16:Does it walk around on two feet like a human?:_Q17:_Q20:
+_Q10:Does it fly?:_Q11:_Q16:
+_Q2:Does it live in the water?:_Q3:_Q10:
+_Q29:Is it covered in fur?:Sea Otter:Whale:
+_Q27:Does it have tusks?:Walrus:_Q29:
+_Q26:Is it carnivorous?:_Q27:Manatee:
+_Q34:Does it have stripes?:Tiger:Lion:
+_Q41:Does it live in the trees?:Squirrel:Giraffe:
+_Q39:Does it have a trunk?:Elephant:_Q41:
+_Q37:Is it omnivorous?:Raccoon:_Q39:
+_Q33:Is it carnivorous?:_Q34:_Q37:
+_Q25:Does it live in water?:_Q26:_Q33:
+_Q48:Does it live on a farm?:Cow:Cat:
+_Q46:Does it bark?:Dog:_Q48:
+_Q44:Does it live in water?:Goldfish:_Q46:
+_Q24:Is it a wild animal?:_Q25:_Q44:
+_Q55:Does it have a shell?:Turtle:Lizard:
+_Q54:Does it have legs?:_Q55:Snake:
+_Q52:Does it live in water?:Fish:_Q54:
+_Q60:Does it have a shell?:Clam:Jellyfish:
+_Q63:Does it live underground?:Earthworm:Snail:
+_Q59:Does it live in water?:_Q60:_Q63:
+_Q51:Does it have a backbone?!:_Q52:_Q59:
+_Q23:Is it warm-blooded?:_Q24:_Q51:
+_Q1:Is it imaginary?:_Q2:_Q23:
