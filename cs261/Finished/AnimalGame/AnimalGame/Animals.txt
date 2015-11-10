@@ -12,21 +12,22 @@ _Q29:Is it covered in fur?:Sea Otter:Whale:
 _Q27:Does it have tusks?:Walrus:_Q29:
 _Q26:Is it carnivorous?:_Q27:Manatee:
 _Q34:Does it have stripes?:Tiger:Lion:
-_Q41:Does it live in the trees?:Squirrel:Giraffe:
+_Q43:Does it have a horn on its nose?:Rhinoceros:Giraffe:
+_Q41:Does it live in the trees?:Squirrel:_Q43:
 _Q39:Does it have a trunk?:Elephant:_Q41:
 _Q37:Is it omnivorous?:Raccoon:_Q39:
 _Q33:Is it carnivorous?:_Q34:_Q37:
 _Q25:Does it live in water?:_Q26:_Q33:
-_Q48:Does it live on a farm?:Cow:Cat:
-_Q46:Does it bark?:Dog:_Q48:
-_Q44:Does it live in water?:Goldfish:_Q46:
-_Q24:Is it a wild animal?:_Q25:_Q44:
-_Q55:Does it have a shell?:Turtle:Lizard:
-_Q54:Does it have legs?:_Q55:Snake:
-_Q52:Does it live in water?:Fish:_Q54:
-_Q60:Does it have a shell?:Clam:Jellyfish:
-_Q63:Does it live underground?:Earthworm:Snail:
-_Q59:Does it live in water?:_Q60:_Q63:
-_Q51:Does it have a backbone?!:_Q52:_Q59:
-_Q23:Is it warm-blooded?:_Q24:_Q51:
+_Q50:Does it live on a farm?:Cow:Cat:
+_Q48:Does it bark?:Dog:_Q50:
+_Q46:Does it live in water?:Goldfish:_Q48:
+_Q24:Is it a wild animal?:_Q25:_Q46:
+_Q57:Does it have a shell?:Turtle:Lizard:
+_Q56:Does it have legs?:_Q57:Snake:
+_Q54:Does it live in water?:Fish:_Q56:
+_Q62:Does it have a shell?:Clam:Jellyfish:
+_Q65:Does it live underground?:Earthworm:Snail:
+_Q61:Does it live in water?:_Q62:_Q65:
+_Q53:Does it have a backbone?!:_Q54:_Q61:
+_Q23:Is it warm-blooded?:_Q24:_Q53:
 _Q1:Is it imaginary?:_Q2:_Q23:

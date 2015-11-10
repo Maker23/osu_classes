@@ -191,6 +191,7 @@ struct fileLine *	_createFileLine(char *QID, char *Question, char *Yes, char *No
 	tmpFileLine->QID = i;
 	tmpFileLine->Question = malloc((strlen(Question) +1 ) * sizeof(char)); 
 	strncpy (tmpFileLine->Question, Question, (int)strlen(Question));
+	Question[strlen(Question)] = '\0';
 	tmpFileLine->Yes = malloc((strlen(Yes) +1) * sizeof(char)); strcpy (tmpFileLine->Yes, Yes);
 	tmpFileLine->No = malloc((strlen(No) +1)*sizeof(char)); strcpy (tmpFileLine->No, No);
 
@@ -225,8 +226,9 @@ struct Node *	_buildTree(struct fileLine *FileLine)
 	struct Node * LeafNode_N;
 
 
-	thisNode->String = malloc(strlen(FileLine->Question)* sizeof(char)); 
+	thisNode->String = malloc((strlen(FileLine->Question) +1)* sizeof(char)); 
 	strcpy (thisNode->String, FileLine->Question);
+	thisNode->String[strlen(FileLine->Question)] = '\0';
 	if ( FileLine->Yes != NULL)
 	{
 		yesQ = sscanf(FileLine->Yes,"_Q%d", &y);
@@ -238,8 +240,9 @@ struct Node *	_buildTree(struct fileLine *FileLine)
 		{
 			//printf ("166 DEBUG: Question is %s, Yes:%s No:%s\n", FileLine->Question, FileLine->Yes, FileLine->No);
 			LeafNode_Y = malloc (sizeof (struct Node));
-			LeafNode_Y->String = malloc(strlen(FileLine->Yes)* sizeof(char)); 
+			LeafNode_Y->String = malloc((strlen(FileLine->Yes) +1)* sizeof(char)); 
 			strcpy (LeafNode_Y->String, FileLine->Yes);
+			LeafNode_Y->String[strlen(FileLine->Yes)] = '\0';
 			LeafNode_Y->Yes = NULL;
 			LeafNode_Y->No = NULL;
 			thisNode->Yes = LeafNode_Y;
@@ -259,8 +262,9 @@ struct Node *	_buildTree(struct fileLine *FileLine)
 		{
 			//printf ("185 DEBUG: Question is %s, Yes:%s No:%s\n", FileLine->Question, FileLine->Yes, FileLine->No);
 			LeafNode_N = malloc (sizeof (struct Node));
-			LeafNode_N->String = malloc(strlen(FileLine->No)* sizeof(char)); 
+			LeafNode_N->String = malloc((strlen(FileLine->No) +1 )* sizeof(char)); 
 			strcpy (LeafNode_N->String, FileLine->No);
+			LeafNode_N->String[strlen(FileLine->No)] = '\0';
 			LeafNode_N->Yes = NULL;
 			LeafNode_N->No = NULL;
 			thisNode->No = LeafNode_N;
