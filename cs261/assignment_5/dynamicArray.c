@@ -2,7 +2,17 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "dynamicArray.h"
+#include "toDoList.h"
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
+#ifndef SDEBUG
+#define SDEBUG 0
+#endif
 
 struct DynArr
 {
@@ -10,6 +20,9 @@ struct DynArr
 	int size;		/* Number of elements in the array */
 	int capacity;	/* capacity ofthe array */
 };
+
+/* prototype that wasn't included in .h file */
+void _percolateUp(DynArr *heap, int Idx);
 
 /* ************************************************************************
 	Dynamic Array Functions
@@ -228,10 +241,13 @@ void swapDynArr(DynArr *v, int i, int  j)
 	assert(i >= 0);
 	assert(j >= 0);
 
+  if (SDEBUG) printf("Before: v->data[i] = %d, v->data[j] = %d\n", ((struct Task *)v->data[i])->priority, ((struct Task *)v->data[j])->priority);
+
 	temp = v->data[i];
 	v->data[i] = v->data[j];
 	v->data[j] = temp;
 
+  if (DEBUG) printf("After: v->data[i] = %d, v->data[j] = %d\n", ((struct Task *)v->data[i])->priority, ((struct Task *)v->data[j])->priority);
 }
 /* Inserts an element into the dynamic array at the specified location
 
@@ -508,6 +524,7 @@ void removeDynArrOrd(DynArr *v, TYPE val, comparator compare)
 ************************************************************************ */
 
 /* internal function prototypes */
+void _buildHeap(DynArr *heap, comparator compare);
 int _smallerIndexHeap(DynArr *heap, int i, int j, comparator compare);
 void _adjustHeap(DynArr *heap, int max, int pos, comparator compare);
 
@@ -521,7 +538,10 @@ void _adjustHeap(DynArr *heap, int max, int pos, comparator compare);
 */
 int _smallerIndexHeap(DynArr *heap, int i, int j, comparator compare)
 {
-  /* FIXME Write _smallerIndex */
+  if((*compare)(heap->data[i], heap->data[j]) < 0)
+		return i;
+
+	return j;
 }
 
 /*	Get the first node, which has the min priority, from the heap
@@ -532,8 +552,10 @@ int _smallerIndexHeap(DynArr *heap, int i, int j, comparator compare)
 */
 TYPE getMinHeap(DynArr *heap)
 {
+	assert (heap != NULL);
+	assert (sizeDynArr(heap) != 0);
 
-  /* FIXME: Write getMin */
+	return (getDynArr(heap, 0));
 }
 
 /*	Add a node to the heap
@@ -545,7 +567,28 @@ TYPE getMinHeap(DynArr *heap)
 */
 void addHeap(DynArr *heap, TYPE val, comparator  compare)
 {
-  /* FIXME: Write addHeap */
+  if (DEBUG) printf("Adding %d to heap\n", ((struct Task *) val)->priority);
+
+	addDynArr(heap, val);
+	_percolateUp(heap, sizeDynArr(heap) - 1);
+
+	if (DEBUG) {
+		printf ("======================================   printing added heap\n");
+		printDynArr(heap, print_type);
+	}
+}
+
+/*  Helper function for addHeap  */
+void _percolateUp(DynArr *heap, int Idx)
+{
+	if (Idx > 0) {
+  	if (DEBUG) printf("In percUp, comparing %d with %d\n", ((struct Task *)(heap->data[Idx]))->priority, ((struct Task *)(heap->data[Idx/2]))->priority);
+		if ((compare (heap->data[Idx], heap->data[Idx/2] )) < 0 )
+		{
+			swapDynArr(heap, Idx/2, Idx);
+			_percolateUp(heap, Idx/2);
+		}
+	}
 }
 
 /*	Adjust heap to maintain heap property
@@ -557,9 +600,45 @@ void addHeap(DynArr *heap, TYPE val, comparator  compare)
 	post:	heap property is maintained for nodes from index pos to index max-1  (ie. up to, but not including max)
 */
 
-void _adjustHeap(DynArr *heap, int max, int pos, comparator compare)
+void _adjustHeap(DynArr *heap, int maxInd, int currInd, comparator compare)
 {
-  /* FIXME: Write _adjustHeap */
+	assert (heap !=NULL);
+	assert (compare !=NULL);
+	assert (maxInd >= 0);
+	assert (currInd >= 0);
+
+	int leftChildInd = 2 * currInd + 1;
+	int rghtChildInd = 2 * currInd + 2;
+	int _minChildInd;
+
+	if (DEBUG || SDEBUG) printf("+++++ _adjust heap maxInd = %d, currInd = %d\n", maxInd, currInd);
+
+	if (rghtChildInd < maxInd) 
+	{ 
+		/* we have two children */
+		/* get index of smallest child */
+		_minChildInd = _smallerIndexHeap (heap, leftChildInd, rghtChildInd, compare);
+		if (SDEBUG) printf ("+++++\tFinding minChild; Comparing %d and %d; smallest is %d [index %d]\n", ((struct Task*)getDynArr(heap,leftChildInd))->priority, ((struct Task*)getDynArr(heap,rghtChildInd))->priority, ((struct Task*)getDynArr(heap,_minChildInd))->priority, _minChildInd);
+
+		if (SDEBUG) printf ("+++++\tComparing priorities %d and %d\n", ((struct Task *)getDynArr(heap,_minChildInd))->priority, ((struct Task *)getDynArr(heap,currInd))->priority);
+		if ((*compare) (getDynArr(heap, _minChildInd), getDynArr(heap,currInd)) < 0 )
+		{
+			swapDynArr(heap, currInd, _minChildInd);
+			_adjustHeap (heap, maxInd, _minChildInd, compare);
+		}
+	}
+	else if (leftChildInd < maxInd) { 
+		/* we have one child */ 
+		if (SDEBUG) printf ("+++++\tComparing priorities %d and %d\n", ((struct Task *)getDynArr(heap,leftChildInd))->priority, ((struct Task *)getDynArr(heap,currInd))->priority);
+		if ((*compare) (getDynArr(heap, leftChildInd), getDynArr(heap,currInd)) < 0 )
+		{
+			swapDynArr(heap, currInd, leftChildInd);
+			_adjustHeap (heap, maxInd, leftChildInd, compare);
+		}
+	}
+
+	return;
+	/* else no children, done */
 }
 
 /*	Remove the first node, which has the min priority, from the heap
@@ -570,7 +649,21 @@ void _adjustHeap(DynArr *heap, int max, int pos, comparator compare)
 */
 void removeMinHeap(DynArr *heap, comparator compare)
 {
-  /* FIXME: Write removeMin */
+  assert (heap != NULL);
+	assert (sizeDynArr(heap) >= 0);
+
+	int last = sizeDynArr(heap)-1;
+
+	if (last > 0)
+	{
+		putDynArr(heap, 0, getDynArr(heap, last));
+		removeAtDynArr(heap, last);
+		_adjustHeap(heap, last, 0, compare);
+	}
+	else
+	{
+		removeAtDynArr(heap, last);
+	}
 }
 
 /* builds a heap from an arbitrary dynArray
@@ -582,7 +675,17 @@ void removeMinHeap(DynArr *heap, comparator compare)
 
 void _buildHeap(DynArr *heap, comparator compare)
 {
-  /* FIXME: Write buildHeap */
+
+	int max = sizeDynArr(heap);
+	int i;
+
+	if ( DEBUG || SDEBUG) printf ("+++++ in _buildHeap +++++\n");
+	for ( i = max/2-1; i >= 0; i--)
+	{
+		if (SDEBUG) printf ("+++++ in _buildHeap i = %d +++++\n", i);
+		_adjustHeap(heap, max, i, compare);
+		if (SDEBUG) printDynArr(heap, print_type);
+	}
 }
 /*
     In-place sort of the heap
@@ -594,7 +697,32 @@ void _buildHeap(DynArr *heap, comparator compare)
 
 void sortHeap(DynArr *heap, comparator compare)
 {
-  /* FIXME: Write sortHeap */
+	DynArr *temp;
+	struct Task * task;
+	int Ind = sizeDynArr(heap);
+
+	// These two steps will create a true heap if the data isn't
+	// in heap order to begin with . Shouldn't need them though
+	_buildHeap(heap, compare); 
+	//_adjustHeap(heap, Ind-1, 0, compare);
+	_adjustHeap(heap, Ind, 0, compare);
+
+	if (DEBUG) printf ("+++++ in sortHeap +++++\n");
+
+	temp = createDynArr(sizeDynArr(heap));
+	copyDynArr(heap, temp);
+
+	if (DEBUG) printf ("+++++ while loop +++++\n");
+	while (sizeDynArr(temp) > 0)
+	{
+		if (DEBUG) printf ("+++++ Ind - sizeDynArr(temp) = %d +++++\n", Ind - sizeDynArr(temp));
+		task = getMinHeap(temp);
+		if (DEBUG) printf ("+++++ task %s = priority %d +++++\n", task->description, task->priority);
+		heap->data[Ind - sizeDynArr(temp)] = task;
+		removeMinHeap(temp,compare);
+	}
+	deleteDynArr(temp);
+
 }
 
 

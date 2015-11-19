@@ -1,9 +1,17 @@
+// vi: ts=2
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include "toDoList.h"
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
+#ifndef SDEBUG
+#define SDEBUG 0
+#endif
 
 
 /*----------------------------------------------------------------------------
@@ -17,20 +25,17 @@
  if left = right return 0
  */
 
- /*Define this function, type casting the value of void * to the desired type.
-  The current definition of TYPE in bst.h is void*, which means that left and
-  right are void pointers. To compare left and right, you should first cast
-  left and right to the corresponding pointer type (struct data *), and then
-  compare the values pointed by the casted pointers.
-
-  DO NOT compare the addresses pointed by left and right, i.e. "if (left < right)",
-  which is really wrong.
- */
 int compare(TYPE left, TYPE right)
 {
-    /*FIXME: write compare*/
+	struct Task * Left = (struct Task *) left;
+	struct Task * Right = (struct Task *) right;
 
-
+	if ( Left->priority < Right->priority )
+		return -1;
+	else if (Left->priority > Right->priority)
+		return 1;
+	else
+		return 0;
 }
 
 /***************************************************************
@@ -46,8 +51,6 @@ void print_type(TYPE val)
 }
 
 
-
-
 /*  Create a task from the description and the priority
 
     param:  priority    priority of the task
@@ -58,7 +61,20 @@ void print_type(TYPE val)
 */
 TaskP createTask (int priority, char *desc)
 {
-  /*FIXME: Write createTask */
+	struct Task * TaskP;
+	// time_t now = time(0) - 1446249600; // Extra Credit
+
+	TaskP = malloc (sizeof (struct Task));
+	assert (TaskP != NULL);
+
+	strncpy(TaskP->description, desc, (strlen(desc)));
+	TaskP->description[strlen(desc)] = '\0';
+
+	TaskP->priority = priority;
+	// TaskP->create_time = now; // Extra credit
+
+
+	return TaskP;
 }
 
 /*  Save the list to a file
@@ -110,6 +126,7 @@ void loadList(DynArr *heap, FILE *filePtr)
     {
       sscanf(line, "%d\t%[^\n]", &priority, desc);
       task = createTask(priority, desc);
+      if (DEBUG) printf("loaded task %d:  %s\n", task->priority, task->description);
       addHeap(heap, task, compare);
     } /* should use feof to make sure it found eof and not error*/
 
@@ -140,7 +157,7 @@ void printList(DynArr *heap)
       task = getMinHeap(temp);
 
       /* print the task */
-      printf("%d:  %s\n\n", task->priority, task->description);
+      printf("%d:  %s\n", task->priority, task->description);
       /* remove the task , but let's not free up the memory it's pointing to since old Arr is using it!*/
       removeMinHeap(temp, compare);
     }

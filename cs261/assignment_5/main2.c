@@ -24,16 +24,16 @@ int main(int argc, const char * argv[])
 	mainList = createDynArr(10);
 
 	/* create tasks */
-	task1 = createTask(9, "task 1");
-	task2 = createTask(3, "task 2");
-	task3 = createTask(2, "task 3");
-	task4 = createTask(4, "task 4");
-	task5 = createTask(5, "task 5");
-	task6 = createTask(7, "task 6");
-	task7 = createTask(8, "task 7");
-	task8 = createTask(6, "task 8");
-	task9 = createTask(1, "task 9");
-	task10 = createTask(0, "task 10");
+	task1 = createTask(9, "First");
+	task2 = createTask(3, "Second");
+	task3 = createTask(2, "Third");
+	task4 = createTask(4, "Fourth");
+	task5 = createTask(5, "Fifth");
+	task6 = createTask(7, "Sixth");
+	task7 = createTask(8, "Seventh");
+	task8 = createTask(6, "Eighth");
+	task9 = createTask(1, "Ninth");
+	task10 = createTask(0, "Tenth");
 
 	/* add tasks to the dynamic array */
 	addHeap(mainList, task1, compare);
