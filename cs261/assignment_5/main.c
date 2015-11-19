@@ -4,7 +4,7 @@
 #include <string.h>
 #include "toDoList.h"
 
-#define FILENAME "toDo.txt"
+#define FILENAME "todo.txt"
 
 
 int main (int argc, const char * argv[])
@@ -89,12 +89,21 @@ int main (int argc, const char * argv[])
 						printf ("Your to-do list is empty.\n");
 					break;
 				case 'r':
-					printf ("Removing the top priority item from the list\n");
-					removeMinHeap(mainList, compare);
+					if (sizeDynArr(mainList) > 0 )
+					{
+						printf ("Removing the top priority item from the list\n");
+						removeMinHeap(mainList, compare);
+					}
+					else
+						printf ("Your to-do list is empty.\n");
 					break;
 				case 'p':
-					printf ("DEBUG: case p\n");
-					printList(mainList);
+					if (sizeDynArr(mainList) > 0 )
+					{
+						printList(mainList);
+					}
+					else
+						printf("Your to-do list is empty.\n");
 					break;
 				case 'e':
 				case 'q':
