@@ -1,4 +1,13 @@
-/*	dynArr.c: Dynamic Array implementation. */
+/* vim: ts=2
+ *
+ *  Author: Shoshana Abrass   abrasss@onid.oregonstate.edu
+ *  Class: OSU CS261, Data structures. Fall 2015 section 400
+ *  Filename: dynamicArray.c
+ *
+ *  Overview: Implementation of a heap using a dynamic array 
+ *
+ */
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

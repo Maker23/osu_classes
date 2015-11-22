@@ -1,3 +1,13 @@
+/* vim: ts=2
+ *
+ *  Author: Shoshana Abrass   abrasss@onid.oregonstate.edu
+ *  Class: OSU CS261, Data structures. Fall 2015 section 400
+ *  Filename: main.c
+ *
+ *  Overview: This program exercises the toDoList functions
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -22,7 +32,7 @@ int main (int argc, const char * argv[])
   /* ***************************************************** 
 	 *
 	 * The UI is better if the program automatically reads and
-	 * prints the file.  Commented out for the assignment.
+	 * prints the file on startup.  Commented out for the assignment.
 	 */
   /*
   fp=fopen(FILENAME, "r");

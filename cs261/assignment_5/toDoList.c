@@ -1,4 +1,13 @@
-// vi: ts=2
+/* vim: ts=2
+ *
+ *  Author: Shoshana Abrass   abrasss@onid.oregonstate.edu
+ *  Class: OSU CS261, Data structures. Fall 2015 section 400
+ *  Filename: 
+ *
+ *  Overview:
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
