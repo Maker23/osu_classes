@@ -222,7 +222,30 @@ int DFSRecursive(Graph* g, Vertex* source, Vertex* destination)
  */
 int DFS(Graph* g, Vertex* source, Vertex* destination)
 {
-	/* FIXME you will write this */
+	int i;
+	Vertex* v;
+	struct cirListDeque *vStack = malloc (sizeof (struct cirListDeque));
+	initCirListDeque(vStack);
+
+
+	clearVisited(g);
+	addFrontCirListDeque(vStack, source);
+
+  while ( ! isEmptyCirListDeque(vStack))
+	{
+		v = frontCirListDeque(vStack);
+		removeFrontCirListDeque(vStack);
+		if ( v == destination)
+			return 1;
+		if ( v->isVisited == 0 )
+		{
+			v->isVisited = 1;
+			for (i=0; i < v->numNeighbors; i++)
+			{
+				addFrontCirListDeque(vStack, v->neighbors[i]);
+			}
+		}
+	}
 	return 0;
 }
 
@@ -235,6 +258,29 @@ int DFS(Graph* g, Vertex* source, Vertex* destination)
  */
 int BFS(Graph* g, Vertex* source, Vertex* destination)
 {
-	/* FIXME you will write this */
+	int i;
+	Vertex* v;
+	struct cirListDeque *vStack = malloc (sizeof (struct cirListDeque));
+	initCirListDeque(vStack);
+
+
+	clearVisited(g);
+	addFrontCirListDeque(vStack, source);
+
+  while ( ! isEmptyCirListDeque(vStack))
+	{
+		v = backCirListDeque(vStack);
+		removeBackCirListDeque(vStack);
+		if ( v == destination)
+			return 1;
+		if ( v->isVisited == 0 )
+		{
+			v->isVisited = 1;
+			for (i=0; i < v->numNeighbors; i++)
+			{
+				addFrontCirListDeque(vStack, v->neighbors[i]);
+			}
+		}
+	}
 	return 0;
 }
