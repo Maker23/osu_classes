@@ -9,26 +9,96 @@
 datafile="datafile.$$"
 tmpfile="tmpfile.$$"
 use_columns=0
-
-DEBUG=1
 IODEBUG=1
 MATHDEBUG=1
-unset DEBUG
+# debug flags - comment these lines to turn debugging on
 unset IODEBUG
 unset MATHDEBUG
 
+#===========
+# Remove any temporary files on exit, interrupt/hup/term
+# Manpage for trap is distinctly pathetic; this is based on 
+# http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_12_02.html
+trap "{ /bin/rm -f datafile.$$ ${tmpfile};exit; }"  EXIT SIGTERM SIGINT SIGHUP
+
+#===========
+# Functions for average and median
+# AVERAGE
+Average()
+{
+		n=0
+		sum=0
+		avg=0
+
+		for item in ${*}; do
+			echo ${item} >> ${tmpfile}
+			# TODO: check for non-numeric data
+			let sum=sum+${item}
+			let n=n+1
+		done
+		let avg=sum/n
+		let rem=sum%n
+		haf=`echo "scale=1; ${n}/2" | bc` 
+
+		roundup=`echo "scale=1; (${rem} >= ${haf})" | bc`
+		if [ -v MATHDEBUG ] ; then 
+			echo "DBG: sum = ${sum}" 
+			echo "DBG: rem = ${rem}" 
+			echo "DBG: haf = ${haf}" 
+			echo "DBG: roundup = ${roundup}" 
+		fi
+		if [ ${roundup} -eq 1 ] ; then
+			let avg=avg+1
+		fi
+
+}
+
+# MEDIAN
+Median()
+{
+		n=0
+		cat /dev/null > ${tmpfile} # TODO: check for fail!
+
+		for item in ${*}; do
+			echo ${item} >> ${tmpfile}
+			# TODO: check for non-numeric data
+			let n=n+1
+		done
+		
+		# Thank you stackoverflow for this "tr" command
+		sortrow=`sort ${tmpfile} | tr '\n' ' '`
+		[ -v MATHDEBUG ] && echo "DBG: sorted list is ${sortrow}"
+		[ -v MATHDEBUG ] && (echo -n "DGB: ${sortrow} has " `echo ${sortrow} | wc -w` " numbers"; echo "")
+
+		let odd=n%2
+		if [ ${odd} -eq 0 ] ; then
+			# even number of elements
+			let low_element=(n/2)
+			let hi_element=(n/2)+1
+			Average `echo ${sortrow} | cut -d" " -f ${low_element},${hi_element}`
+			median=${avg}
+		else
+			# odd number of elements
+			let mid_element=(n/2)+1
+			median=`echo ${sortrow} | cut -d" " -f ${mid_element}`
+		fi
+
+}
 #=========== =========== =========== ===========
+# MAIN execution starts here
 # Parse the command line arguments
 USAGE='USAGE: '" $0 "'{-rows|-cols} [input_file]'"
-\nWHICH:\tcomputes the average and median of a row, or column, of numbers
-\n\tread from input_file"
+	\nWHICH:\tcomputes the average and median of a row, or column, of numbers
+	\n\tread from input_file"
 
-if [ $# -lt 1 ]; then
+# If too many or too few arguments, exit
+if [ $# -lt 1 -o $# -gt 2 ]; then
 	>&2 /bin/echo -e $USAGE
 	exit 1
 fi
 
-# Based on handy code snippet from assignment page
+# Handy code snippet from assignment page. Personally I wouldn't use 
+# the new test here (double [[ ), but someone likes it so we leave it in.
 if [[ $1 == -r* ]]; then
 	echo "calculating row stats";
 elif [[ $1 == -c* ]]; then
@@ -43,11 +113,10 @@ fi
 #===========
 # If there's no filename argument, read from stdin
 # and store the results in a file
-# Based on handy code snippet from assignment page
+# Handy code snippet from assignment page
 if [ $# -eq 1 ]; then
 	echo "Enter lines of numbers, end with <ctrl>-D: "
 	cat > "$datafile"
-#elif [ $# -eq 2 ]; then
 else
 	if [[ $2 == -r* || $2 == -c* ]]; then
 		>&2 echo "ERROR: Only one of {-rows|-cols} can be specified"
@@ -72,10 +141,10 @@ fi
 # captures the last line of input even if it ends with something other than EOL
 i=0
 while read -r -a line || [[ -n "$line" ]]; do
-	if [ -v IODEBUG ]; then echo "DBG: Text read from file: ${line[*]}"; fi
+	[ -v IODEBUG ] && echo "DBG: Text read from file: ${line[*]}"
 	Line[i]=${line[*]}
 	for word in ${Line[i][*]}; do
-		if [ -v IODEBUG ] ; then echo "DBG: This is a word: ${word}"; fi
+		[ -v IODEBUG ] && echo "DBG: This is a word: ${word}"
 		echo -n ""
 	done
 	let i=i+1
@@ -83,65 +152,46 @@ done < "$datafile"
 
 #=========== =========== =========== ===========
 # Do some math
-i=0
-j=0
 if [ $use_columns -gt 0 ]; then
 	#===========
 	# COLUMNS
-		echo -n ""
+	j=0
+  #while [ -n "${column[*]}" ]; do
+  while [ true ]; do
+		i=0
+		column=()
+		Row=(${Line[i]})	# Row as an array
+		while [ -n "${Row[*]}" ]; do
+			if [ -n "${Row[j]}" ]; then
+				column=(${column[*]} ${Row[j]})
+			fi
+			let i=i+1
+			Row=(${Line[i]})
+		done
+  	if [ -z "${column[*]}" ]; then
+			break
+		fi
+
+		Average ${column[*]}
+		average=${avg}
+		Median ${column[*]}
+		echo "Column ${j} = ${column[*]}, average = ${average}, median = ${median}"
+
+		let j=j+1
+	done
+
 else
+	i=0
 	#===========
 	# ROWS
 	row=${Line[i]}
 	while [ -n "${row}" ]; do
-		n=0
-		sum=0
-		avg=0
-		cat /dev/null > ${tmpfile}
-
 	
-		#===========
-		# Row Average
-		for item in ${row}; do
-			echo ${item} >> ${tmpfile}
-			# TODO: check for non-numeric data
-			let sum=sum+${item}
-			let n=n+1
-		done
-		let avg=sum/n
-		let rem=sum%n
-		haf=`echo "scale=1; ${n}/2" | bc` 
+		Average ${row}
+		average=${avg} # Store this in a permanent var
+		Median ${row}
 
-		roundup=`echo "scale=1; (${rem} >= ${haf})" | bc`
-		if [ -v MATHDEBUG ] ; then 
-			echo "DBG: sum = ${sum}" 
-			echo "DBG: rem = ${rem}" 
-			echo "DBG: haf = ${haf}" 
-			echo "DBG: roundup = ${roundup}" 
-		fi
-		if [ ${roundup} -eq 1 ] ; then
-			let avg=avg+1
-		fi
-
-
-		#===========
-		# Row Median
-		# TODO: Sort and median
-		# Thank you stackoverflow for this "tr" command
-		sortrow=`sort ${tmpfile} | tr '\n' ' '`
-		if [ -v MATHDEBUG ] ; then echo "DBG: sorted list is ${sortrow}"; fi
-		if [ -v MATHDEBUG ] ; then echo -n "DGB: ${sortrow} has " `echo ${sortrow} | wc -w` " numbers"; echo ""; fi
-		let odd=n%2
-		if [ ${odd} -eq 0 ] ; then
-			# even number of elements
-			median="NYN"
-		else
-			# odd number of elements
-			let mid_element=(n/2)+1
-			median=`echo ${sortrow} | cut -d" " -f ${mid_element}`
-		fi
-
-		echo "Row = ${row}, average = ${avg}, median = ${median}"
+		echo "Row ${i} = ${row}, average = ${average}, median = ${median}"
 
 		#===========
 		# Process the next line
@@ -151,11 +201,5 @@ else
 fi
 
 
-#===========
-# Remove any temporary files on exit, interrupt/hup/term
-# Manpage for trap is distinctly pathetic; this is based on 
-# http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_12_02.html
-
-trap "{ /bin/rm -f datafile.$$ ${tmpfile}; }"  EXIT SIGTERM SIGINT SIGHUP
 
 exit 0
