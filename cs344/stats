@@ -1,7 +1,9 @@
 #!/bin/sh -f
 #
 # stats script in *bash*  MWAHAHAHAHA!
-# Shoshana Abrass, CS344-400  Spring 2016 did I mention MWAUAHAHA!!!!!!
+# Shoshana Abrass, CS344-400  Spring 2016 
+#
+# did I mention MWAUAHAHA!!!!!! it's in BASH!
 #
 
 #=========== 
@@ -12,50 +14,67 @@ use_columns=0
 # debug flags - set to 1 to turn debugging on
 IODEBUG=0
 MATHDEBUG=0
+USAGE='USAGE: '" $0 "'{-rows|-cols} [input_file]'"
+	\nWHICH:\tcomputes the average and median of a row, or column, of numbers
+	\n\tread from input_file or stdin"
 
 #===========
-# Remove any temporary files on exit, interrupt/hup/term
+# Remove any temporary files on exit,interrupt,hup, or term
 # Manpage for trap is distinctly pathetic; this is based on 
 # http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_12_02.html
 trap "{ /bin/rm -f datafile.$$ ${tmpfile};exit; }"  EXIT SIGTERM SIGINT SIGHUP
 
 #===========
 # Functions for average and median
-# AVERAGE
+# AVERAGE sets 'avg', a global var, to the average value of a list of numbers
 Average()
 {
 		n=0
 		sum=0
 		avg=0
 
+		cat /dev/null > ${tmpfile}
+		if [ ! $? -eq 0 ]; then
+			>&2 /bin/echo -e "Oh noes - can't write to temporary file ${tmpfile}!\nexiting...."
+			exit 1
+		fi
+
 		for item in ${*}; do
 			echo ${item} >> ${tmpfile}
+
 			# TODO: check for non-numeric data
 			let sum=sum+${item}
 			let n=n+1
 		done
 		let avg=sum/n
+
+		# Round "avg" up if the decimal portion is one half (.5) or higher
 		let rem=sum%n
 		haf=`echo "scale=1; ${n}/2" | bc` 
-
 		roundup=`echo "scale=1; (${rem} >= ${haf})" | bc`
+		if [ ${roundup} -eq 1 ] ; then
+			let avg=avg+1
+		fi
+
+
 		if [ ${MATHDEBUG} -eq 1 ] ; then 
 			echo "DBG: sum = ${sum}" 
 			echo "DBG: rem = ${rem}" 
 			echo "DBG: haf = ${haf}" 
 			echo "DBG: roundup = ${roundup}" 
 		fi
-		if [ ${roundup} -eq 1 ] ; then
-			let avg=avg+1
-		fi
-
 }
 
 # MEDIAN
+# sets 'median', a global var, to the average value of a list of numbers
 Median()
 {
 		n=0
-		cat /dev/null > ${tmpfile} # TODO: check for fail!
+		cat /dev/null > ${tmpfile}
+		if [ ! $? -eq 0 ]; then
+			>&2 /bin/echo -e "Oh noes - can't write to temporary file ${tmpfile}!\nexiting...."
+			exit 1
+		fi
 
 		for item in ${*}; do
 			echo ${item} >> ${tmpfile}
@@ -68,7 +87,10 @@ Median()
 		[ ${MATHDEBUG} -eq 1 ] && echo "DBG: sorted list is ${sortrow}"
 		[ ${MATHDEBUG} -eq 1 ] && (echo -n "DGB: ${sortrow} has " `echo ${sortrow} | wc -w` " numbers"; echo "")
 
-		#let odd=n%2
+		# let odd=n%2
+		# Instructor prefers not to average the two middle elements
+		# So the code for "even number" is not used here
+		# Instead we always return the higher of the two middle numbers (n/2 +1)
 		let odd=1
 		if [ ${odd} -eq 0 ] ; then
 			# even number of elements
@@ -86,20 +108,16 @@ Median()
 
 }
 #=========== =========== =========== ===========
-# MAIN execution starts here
-# Parse the command line arguments
-USAGE='USAGE: '" $0 "'{-rows|-cols} [input_file]'"
-	\nWHICH:\tcomputes the average and median of a row, or column, of numbers
-	\n\tread from input_file or stdin"
+# Main execution starts here
 
-# If too many or too few arguments, exit
+# If too many or too few command-line arguments, exit
 if [ $# -lt 1 -o $# -gt 2 ]; then
 	>&2 /bin/echo -e $USAGE
 	exit 1
 fi
 
-# Handy code snippet from assignment page. Personally I wouldn't use 
-# the new test here (double [[ ), but someone likes it so we leave it in.
+# Check for supported command-line flags.
+# Handy code snippet from assignment page. 
 if [[ $1 == -r* ]]; then
 	echo "calculating row stats";
 elif [[ $1 == -c* ]]; then
@@ -111,9 +129,8 @@ else
 	exit 1
 fi
 
-#===========
 # If there's no filename argument, read from stdin
-# and store the results in a file
+# and store the results in a temporary file.
 # Handy code snippet from assignment page
 if [ $# -eq 1 ]; then
 	echo "Enter lines of numbers, end with <ctrl>-D: "
@@ -128,9 +145,9 @@ else
 	fi
 fi
 
-#=========== =========== =========== ===========
-# Now read the entire file into array Line[]
-#
+#===========
+# Does the input file not exist, or is it unreadable? Error & exit
+
 if [ ! -e ${datafile} ]; then
 	>&2 echo "File ${datafile} does not exist; exiting...."
 	exit 1
@@ -138,40 +155,48 @@ elif [ ! -r ${datafile} ] ; then
 	>&2 echo "File ${datafile} is not readable; exiting...."
 	exit 1
 fi
-# [[ -n "$line" ]] construct thanks to stackoverflow
-# captures the last line of input even if it ends with something other than EOL
+
+#===========
+# Now read the entire file into two-dimensional array Line[]
+#
+# [[ -n "$line" ]] construct is thanks to stackoverflow; not really necessary.
+# Captures the last line of input even if it ends with something other than EOL
+
+# Read each row into one-dimensional array "line"
+# Each "line" then becomes one element of two-dimensional array "Lines"
 i=0
 while read -r -a line || [[ -n "$line" ]]; do
 	[ ${IODEBUG} -eq 1 ] && echo "DBG: Text read from file: ${line[*]}"
 	Line[i]=${line[*]}
 	for word in ${Line[i][*]}; do
-		[ ${IODEBUG} -eq 1 ] && echo "DBG: This is a word: ${word}"
+		[ ${IODEBUG} -eq 1 ] && echo "DBG: This is one word: ${word}"
 		echo -n ""
 	done
 	let i=i+1
 done < "$datafile"
 
-#=========== =========== =========== ===========
-# Do some math
 if [ $use_columns -gt 0 ]; then
 	#===========
-	# COLUMNS
+	# COLUMNS math
 	medstring=""
 	avgstring=""
 	j=0
 
-  #while [ -n "${column[*]}" ]; do
   while [ true ]; do
+		# Keep grabbing columns...
 		i=0
 		column=()
-		Row=(${Line[i]})	# Row as an array
+		Row=(${Line[i]})	# Row is a one-D array
 		while [ -n "${Row[*]}" ]; do
 			if [ -n "${Row[j]}" ]; then
+				# This method allows us to calculate columns even when rows have
+				# different numbers of elements.
 				column=(${column[*]} ${Row[j]})
 			fi
 			let i=i+1
 			Row=(${Line[i]})
 		done
+		# .... until there are no columns left.
   	if [ -z "${column[*]}" ]; then
 			break
 		fi
@@ -179,6 +204,7 @@ if [ $use_columns -gt 0 ]; then
 		Average ${column[*]}
 		average=${avg}
 		Median ${column[*]}
+		# Two methods of printing that are not what the instructor wanted :)
 		#echo "Column ${j} = ${column[*]}, average = ${average}, median = ${median}"
 		#echo -e "${average}\t${median}"
 		medstring="${medstring}${median}\t"
@@ -193,27 +219,32 @@ if [ $use_columns -gt 0 ]; then
 	echo -e ${medstring}
 
 else
+	#===========
+	# ROWS math
 	echo -e "Average\tMedian"
 	i=0
-	#===========
-	# ROWS
 	row=${Line[i]}
+
 	while [ -n "${row}" ]; do
-	
 		Average ${row}
-		average=${avg} # Store this in a permanent var
+		average=${avg} # Store this value
 		Median ${row}
 
+		#Method of printing that was not what the instructor wanted :)
 		#echo "Row ${i} = ${row}, average = ${average}, median = ${median}"
 		echo -e "${average}\t${median}"
 
-		#===========
-		# Process the next line
+		# Calculate for the next row
 		let i=i+1
 		row=${Line[i]}
 	done
 fi
 
-
-
 exit 0
+
+#   _               _          __ _            
+#  | |             | |        / _| |           
+#  | |__   __ _ ___| |__     | |_| |___      __
+#  | '_ \ / _` / __| '_ \    |  _| __\ \ /\ / /
+#  | |_) | (_| \__ \ | | |   | | | |_ \ V  V / 
+#  |_.__/ \__,_|___/_| |_|   |_|  \__| \_/\_/  
