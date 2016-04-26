@@ -55,7 +55,7 @@ const char * Room_Types[] =
 	"MID_ROOM",
 };
 
-int room_names = 14;
+int room_names = 15;
 int room_types = 3;
 int rooms_in_game = 7;
 int min_connections = 3;
@@ -66,17 +66,19 @@ int  RandNum(int min, int max);
 void PrintRoom (struct Room * );
 void GenerateRooms(struct Room * array[],  int);
 void ConnectRooms(struct Room * array[]);
-int  AddConnection (struct Room * From, struct Room * To);
+int  AddConnection (struct Room * From, struct Room * To, int forward);
 /* ******************************************************* */
 main(int argc, char** argv) {
 	int i;
 	struct Room * gameRooms[rooms_in_game];
 
 	GenerateRooms(gameRooms, rooms_in_game);
-	ConnectRooms(gameRooms);
-
 	for (i=0; i < rooms_in_game; i++)
 		PrintRoom(gameRooms[i]);
+	ConnectRooms(gameRooms);
+	for (i=0; i < rooms_in_game; i++)
+		PrintRoom(gameRooms[i]);
+
 	FILE_DEBUG && printf ("These are not the droids\n");
 
 
@@ -123,7 +125,6 @@ void GenerateRooms(struct Room * gameRooms[], int num_rooms)
 		else {
 			strcpy (this_room->Room_Type, Room_Types[room_types - 1]);
 		}
-		// PrintRoom(this_room); // Debugging
 
 		gameRooms[n++] = this_room;
 	}
@@ -147,9 +148,10 @@ void	ConnectRooms(struct Room * gameRooms[])
 	{
 		num_connections = RandNum(min_connections, max_connections);
 		this_room = gameRooms[i];
+		LOGIC_DEBUG && printf ("i = %d\n", i);
 		LOGIC_DEBUG && printf ("Working on %s\n", this_room->Room_Name);
 		LOGIC_DEBUG && printf ("num_connections = %d\n", num_connections);
-		LOGIC_DEBUG && printf ("i = %d\n", i);
+		LOGIC_DEBUG && printf ("existing connections = %d\n", this_room->connections);
 
 		if ( this_room->connections >= max_connections)
 			continue;
@@ -158,6 +160,7 @@ void	ConnectRooms(struct Room * gameRooms[])
 	
 		// Generate num_connections 
 		n = num_connections - this_room->connections;
+		if ( n == 0 ) continue;
 		for (j=0; j < n; j++) {
 
 			LOGIC_DEBUG && printf ("j = %d\n", j);
@@ -165,38 +168,54 @@ void	ConnectRooms(struct Room * gameRooms[])
 			{
 				try_to_connect = RandNum(0, rooms_in_game - 1);	
 				LOGIC_DEBUG && printf ("try_to_connect = %d\n", try_to_connect);
-				result = AddConnection(this_room, gameRooms[try_to_connect]);
+				result = AddConnection(this_room, gameRooms[try_to_connect], 1);
 			}
 			while ( result == 1 );
 
-			AddConnection(gameRooms[try_to_connect], this_room);
+			//AddConnection(gameRooms[try_to_connect], this_room);
 		}
 	}
 }
 
-int  AddConnection (struct Room * RoomFrom, struct Room * RoomTo)
+int  AddConnection (struct Room * RoomFrom, struct Room * RoomTo, int forward)
 {
 	int i;
 	int matches;
 
-	GENERAL_DEBUG && printf ("Starting AddConnection\n");
-	if ( RoomFrom->connections >= max_connections ) return (1);
-	if ( RoomTo->connections >= max_connections ) return (1);
-
-	// If these rooms are already connected, return an error: can't add this.
-	// Or return success?  TBD
-	matches = ( strcmp(RoomFrom->Room_Name, RoomTo->Room_Name));
-	if ( matches == 0 )
-		return(1);
-	for (i=0; i < RoomFrom->connections; i++)
-	{
-		matches = ( strcmp((RoomFrom->Connection[i])->Room_Name, RoomTo->Room_Name) );
+	GENERAL_DEBUG && printf ("Starting AddConnection, forward = %d\n", forward);
+	if (forward == 1 ) {
+		matches = ( strcmp(RoomFrom->Room_Name, RoomTo->Room_Name));
 		if ( matches == 0 )
+		{
+			LOGIC_DEBUG && printf ("++ fail can't connect to self\n");
 			return(1);
-	}
+		}
+		if ( RoomFrom->connections >= max_connections )
+		{
+			LOGIC_DEBUG && printf ("++ fail RoomFrom connections >= max_connections\n");
+			return (1);
+		}
+		if ( RoomTo->connections >= max_connections ) 
+		{
+			LOGIC_DEBUG && printf ("++ fail RoomTo connections >= max_connections\n");
+			LOGIC_DEBUG && printf ("RoomTo->RoomName = %s, RoomTo->connections = %d, max_connections=%d\n", RoomTo->Room_Name, RoomTo->connections, max_connections);
+			return (1);
+		}
+
+		// If these rooms are already connected, return an error: can't add this.
+		// Or return success?  TBD
+		for (i=0; i < RoomFrom->connections; i++)
+		{
+			matches = ( strcmp((RoomFrom->Connection[i])->Room_Name, RoomTo->Room_Name) );
+			if ( matches == 0 )
+			return(1);
+		}
+  }
 
 	RoomFrom->Connection[RoomFrom->connections] = RoomTo;
 	RoomFrom->connections++;
+	if (forward == 1 )
+		AddConnection ( RoomTo, RoomFrom, 0);
 
 	return(0);
 }
@@ -206,6 +225,7 @@ void PrintRoom (struct Room * this_room)
 	int  i=0;
 
 	printf("================ROOM NAME: %s\n", this_room->Room_Name);
+	printf("connections: %d\n", this_room->connections);
 	while ( i < this_room->connections)
 	{
 		printf("CONNECTION %d: %s\n", i, (this_room->Connection[i])->Room_Name);
