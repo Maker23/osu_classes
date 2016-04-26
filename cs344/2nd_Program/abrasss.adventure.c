@@ -16,7 +16,7 @@
 #define GENERAL_DEBUG 0
 
 /*
- *
+ * TODO: 
  * Get_room_by_name (string room_name)
  * Get_room (Room * pointer)
  */
