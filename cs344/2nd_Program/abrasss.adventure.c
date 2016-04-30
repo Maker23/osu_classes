@@ -1,25 +1,26 @@
 /*
-* Submit a program named <username>.adventure.c.
-* It will be compiled using this line, with my username as the example: 
-* 
-* %gcc –o brewsteb.adventure brewsteb.adventure.c
-*
-* Do not use the -C99 standard or flag when compiling 
-*/
+ * vim: ts=2 
+ *
+ * Description: 
+ * Submit a program named <username>.adventure.c.
+ * It will be compiled using this line, with my username as the example: 
+ * 
+ * %gcc –o brewsteb.adventure brewsteb.adventure.c
+ *
+ * Do not use the -C99 standard or flag when compiling 
+ */
 
 #include <stdio.h>
 #include <stdlib.h> // For random numbers
 #include <string.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #define FILE_DEBUG 1
-#define LOGIC_DEBUG 1
+#define LOGIC_DEBUG 0
+#define ROOM_DEBUG 0
 #define GENERAL_DEBUG 0
 
-/*
- * TODO: 
- * Get_room_by_name (string room_name)
- * Get_room (Room * pointer)
- */
 struct Room 
 {
 	int	 connections;
@@ -42,6 +43,7 @@ const char * My_Room_Names[] =
 	"microkitchen",	// 7 
 	"nap room",			// 8
 	"workshop",			// 9
+	// Bonus rooms ;)
 	"bridge of the Enterprise",			// 10
 	"Galactic Senate on Coruscant",	// 11
 	"Mechanicsberg coffee house",		// 12
@@ -63,23 +65,44 @@ int max_connections = 6;
 
 
 int  RandNum(int min, int max);
-void PrintRoom (struct Room * );
+void PrintRoom (struct Room * , FILE *fp);
 void GenerateRooms(struct Room * array[],  int);
 void ConnectRooms(struct Room * array[]);
+void WriteRoomsToFiles(struct Room * createRooms[], char * RoomDir);
+void ReadRoomsFromFiles(struct Room * playRooms[], char * RoomDir);
 int  AddConnection (struct Room * From, struct Room * To, int forward);
+void RemoveFiles(char * RoomDir);
 /* ******************************************************* */
 main(int argc, char** argv) {
-	int i;
-	struct Room * gameRooms[rooms_in_game];
+	int 		i;
+	struct 	Room * createRooms[rooms_in_game];
+	struct 	Room * playRooms[rooms_in_game];
+	char		RoomDir[25];
 
-	GenerateRooms(gameRooms, rooms_in_game);
-	for (i=0; i < rooms_in_game; i++)
-		PrintRoom(gameRooms[i]);
-	ConnectRooms(gameRooms);
-	for (i=0; i < rooms_in_game; i++)
-		PrintRoom(gameRooms[i]);
+	GenerateRooms(createRooms, rooms_in_game);
+	ConnectRooms(createRooms);
+	if (ROOM_DEBUG == 1 ) {
+		for (i=0; i < rooms_in_game; i++)
+			PrintRoom(createRooms[i], NULL);
+	}
+  sprintf(RoomDir, "abrasss.rooms.%d", getpid());
+	FILE_DEBUG && printf ("RoomDir = %s\n", RoomDir);
+	WriteRoomsToFiles(createRooms, RoomDir);
 
-	FILE_DEBUG && printf ("These are not the droids\n");
+	ReadRoomsFromFiles(playRooms, RoomDir);
+
+/*
+ * File IO: 
+ * 	bool WriteRoomsToFiles(createRooms);
+ * 	Room * [] ReadRoomsFromFiles();
+ * 	IsConnected(Room *, Room *)
+ *
+ * User interaction:
+ * 	bool PlayGame(gameRooms);
+ * 	void ListConnections(Room *, Room *)
+ * 	Room * Get_room_by_name (string room_name)
+ *  			 Get_room (Room * pointer)
+ */
 
 
 	exit(0);
@@ -130,6 +153,8 @@ void GenerateRooms(struct Room * gameRooms[], int num_rooms)
 	}
 
 }
+
+
 void	ConnectRooms(struct Room * gameRooms[])
 {
 	int num_connections;
@@ -220,18 +245,94 @@ int  AddConnection (struct Room * RoomFrom, struct Room * RoomTo, int forward)
 	return(0);
 }
 
-void PrintRoom (struct Room * this_room)
+void WriteRoomsToFiles(struct Room * gameRooms[], char * RoomDir)
+{
+	int i;
+	int result;
+	FILE * File;
+	char FileName[40];
+	
+	GENERAL_DEBUG && printf ("Starting WriteRoomsToFiles\n");
+
+	result = mkdir (RoomDir, S_IRWXU);
+
+	for (i=0; i < rooms_in_game; i++)
+	{
+  	sprintf(FileName, "%s/Roome_%d", RoomDir, i);
+		FILE_DEBUG && printf ("    Would create file named %s\n", FileName);
+		File = fopen (FileName, "w");
+		// TODO: check result
+		if (File == NULL)
+			printf ("There has been a terrible failure of the space-time continuum...\n");
+		PrintRoom(gameRooms[i], File);
+		// TODO: check result
+		close(File);
+	}
+}
+void ReadRoomsFromFiles(struct Room * gameRooms[], char * RoomDir)
+{
+	/* *******************************************************
+	 * Choose a list of ten different Room Names, hard coded into your program, 
+	 * and have your program randomly assign a room name to each room generated. 
+	 * For a given run of your program, 7 of the 10 room names will be used. 
+	 * Note that a room name cannot be used to in more than one room
+	 */
+	int 	n=0;
+	int 	room_number;
+	int		matches;
+	char  this_field[40];
+	char  this_value[40];
+	struct Room * this_room;
+	DIR	* RoomDirectory;
+	FILE * RoomFile;
+	struct dirent * RoomListing;
+
+	GENERAL_DEBUG && printf ("Starting ReadRoomsFromFiles\n");
+
+	RoomDirectory = opendir (RoomDir);
+	RoomListing = readdir (RoomDirectory);
+	FILE_DEBUG && printf ("readdir succeeded\n");
+	// TODO: check for failure
+	while (RoomListing != NULL) { 
+		RoomListing = readdir (RoomDirectory);
+		matches = strncmp(RoomListing->d_name, "Roome_",6 );
+		// Ignore files that don't match the pattern
+		if (matches != 0) 
+			continue;
+
+		/* Open the file */
+		FILE_DEBUG && printf ("opening file %s\n", RoomListing->d_name);
+		RoomFile = fopen ( RoomListing->d_name, "r");
+		//fscanf( RoomFile, "%[^:]:%s", this_field, this_value);
+		/* Read the contents of the file into the struct */
+
+		this_room = (struct Room *) malloc (sizeof (struct Room));
+		//this_room->connections = 0;
+		//strcpy (this_field, this_room->Room_Name);
+		
+		gameRooms[n++] = this_room;
+	}
+	GENERAL_DEBUG && printf ("Finishing ReadRoomsFromFiles\n");
+}
+
+void PrintRoom (struct Room * this_room, FILE * File)
 {
 	int  i=0;
 
-	printf("================ROOM NAME: %s\n", this_room->Room_Name);
-	printf("connections: %d\n", this_room->connections);
+  if (File == NULL ) 
+		File = stdout;
+
+	//fprintf(File, "================\n");
+	//fprintf(File, "connections: %d\n", this_room->connections);
+	// TODO: check result
+	fprintf(File, "ROOM NAME: %s\n", this_room->Room_Name);
 	while ( i < this_room->connections)
 	{
-		printf("CONNECTION %d: %s\n", i, (this_room->Connection[i])->Room_Name);
+		fprintf(File, "CONNECTION %d: %s\n", i, (this_room->Connection[i])->Room_Name);
 		i++;
 	}
-	//printf("ROOM TYPE: %s\n", this_room->Room_Type);
+	
+	fprintf(File, "ROOM TYPE: %s\n", this_room->Room_Type);
 }
 	
 int  RandNum(int min, int max)
@@ -243,8 +344,8 @@ int  RandNum(int min, int max)
 /* *******************************************************
 	 * The first thing your program must do is generate 7 different room files
 	 * , one room per file, in a directory called <username>.rooms.<process
-	 * id>. You get to pick the names for those files, which should be hard
-	
+	 * id>. You get to pick the names for those files, which should be 
+	 * hard-coded into your program. For example, the directory, if I was writing
 	 * the program, should be hard-coded (except for the process id number), as: 
 	 * 
 	 * abrasss.rooms.$PID
