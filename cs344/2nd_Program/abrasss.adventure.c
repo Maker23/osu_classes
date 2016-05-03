@@ -1,38 +1,44 @@
-/*
- * vim: ts=2 
+/* vim:ts=2
+ *                      Shoshana Abrass
+ *                  abrasss@oregonstate.edu
+ *                    CS344_400 Program 2
+ *                       May 2, 2016
  *
- * Description: 
- * Submit a program named <username>.adventure.c.
- * It will be compiled using this line, with my username as the example: 
- * 
- * %gcc –o brewsteb.adventure brewsteb.adventure.c
+ * A classic text-based maze adventure game in the genre of 
+ * https://en.wikipedia.org/wiki/Colossal_Cave_Adventure
  *
- * Do not use the -C99 standard or flag when compiling 
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h> // For random numbers
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <dirent.h>
 
-#define FILE_DEBUG 1
+#define FILE_DEBUG 0
 #define LOGIC_DEBUG 0
 #define ROOM_DEBUG 0
+#define CONNECT_DEBUG 0
 #define GENERAL_DEBUG 0
 
+// TODO exit or return on all perrors
+// Global type for struct Room
 struct Room 
 {
 	int	 connections;
-	char Room_Name[32];
-	char Room_Type[16];
+	char Room_Name[32];	// The name of the room 
+	char Room_Type[16]; // A string that defines the room type 
 	struct Room * Connection[6];
 };
 
+// Defining room names at the top, although strictly speaking these
+// don't need to be global
+// Name length is limited to 31 characters plus NULL
 const char * My_Room_Names[] =
 {
-// Name length is limited to 31 characters plus NULL
-// 1234567890123456789012345678901
 	"entryway",			// 0
 	"elevator",			// 1
 	"hallway",			// 2
@@ -46,10 +52,12 @@ const char * My_Room_Names[] =
 	// Bonus rooms ;)
 	"bridge of the Enterprise",			// 10
 	"Galactic Senate on Coruscant",	// 11
-	"Mechanicsberg coffee house",		// 12
+	"Mechanicsburg coffee house",		// 12
 	"South Pole",										// 13
 	"MMORPG command center",				// 14
+// 1234567890123456789012345678901// name length indicator
 };
+
 const char * Room_Types[] =
 {
 	"START_ROOM",
@@ -57,21 +65,28 @@ const char * Room_Types[] =
 	"MID_ROOM",
 };
 
+/* Handy global variables that control gameplay */
 int room_names = 15;
 int room_types = 3;
 int rooms_in_game = 7;
 int min_connections = 3;
 int max_connections = 6;
+int	max_play_rounds = 1024; // After this you just lose...
 
-
+/* Function prototypes */
 int  RandNum(int min, int max);
+int  AddConnection (struct Room * From, struct Room * To, int forward);
 void PrintRoom (struct Room * , FILE *fp);
 void GenerateRooms(struct Room * array[],  int);
 void ConnectRooms(struct Room * array[]);
+void PlayGame(struct Room * thisRoom);
 void WriteRoomsToFiles(struct Room * createRooms[], char * RoomDir);
 void ReadRoomsFromFiles(struct Room * playRooms[], char * RoomDir);
-int  AddConnection (struct Room * From, struct Room * To, int forward);
-void RemoveFiles(char * RoomDir);
+void RemoveDirectory (char * DirectoryName);
+struct Room * getNextRoom(struct Room * thisRoom, char *RoomChoice);
+struct Room * getRoomByName(struct Room * RoomArray[], int ArraySz, char * MatchName);
+
+
 /* ******************************************************* */
 main(int argc, char** argv) {
 	int 		i;
@@ -81,41 +96,115 @@ main(int argc, char** argv) {
 
 	GenerateRooms(createRooms, rooms_in_game);
 	ConnectRooms(createRooms);
-	if (ROOM_DEBUG == 1 ) {
-		for (i=0; i < rooms_in_game; i++)
-			PrintRoom(createRooms[i], NULL);
-	}
   sprintf(RoomDir, "abrasss.rooms.%d", getpid());
 	FILE_DEBUG && printf ("RoomDir = %s\n", RoomDir);
 	WriteRoomsToFiles(createRooms, RoomDir);
 
 	ReadRoomsFromFiles(playRooms, RoomDir);
-
-/*
- * File IO: 
- * 	bool WriteRoomsToFiles(createRooms);
- * 	Room * [] ReadRoomsFromFiles();
- * 	IsConnected(Room *, Room *)
- *
- * User interaction:
- * 	bool PlayGame(gameRooms);
- * 	void ListConnections(Room *, Room *)
- * 	Room * Get_room_by_name (string room_name)
- *  			 Get_room (Room * pointer)
- */
-
+	if ( ROOM_DEBUG > 0 ) {
+		for (i=0; i < rooms_in_game; i++)
+			PrintRoom(playRooms[i], NULL);
+	}
+  PlayGame(createRooms[0]);
+	// RemoveDirectory(RoomDir); // Leave this for the TAs top look at
 
 	exit(0);
 }
 
+/* ******************************************************* 
+ * This function takes a pointer to a Room struct, and
+ * uses a do...while loop to control game play. The loop
+ * exits when the player reaches the room of type "END_ROOM"
+ *
+ * ***************************************************** */
+void	PlayGame(struct Room * thisRoom)
+{
+	int i;
+	int play_rounds = 0;
+	char UserInput[2048];
+	char *tmp;
+	struct 	Room * roomHistory[max_play_rounds];
+	struct 	Room * lastRoom = thisRoom;
+
+	GENERAL_DEBUG && printf ("Starting PlayGame\n");
+
+	memset (UserInput,0, sizeof UserInput);
+	memset (roomHistory,0, sizeof roomHistory);
+
+	// Main gameplay control loop
+	do {
+		if ( thisRoom != lastRoom ) {
+			// We've moved, count a step
+			roomHistory[play_rounds++] = thisRoom;
+			lastRoom = thisRoom;
+		}
+	  if ( (strcmp (thisRoom->Room_Type, "END_ROOM")) == 0 )
+		{
+			printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
+			printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", play_rounds);
+			for (i=0; i < play_rounds; i++)
+			{
+				printf("%s\n", roomHistory[i]->Room_Name);
+			}
+			return;
+		}
+		printf ("CURRENT LOCATION: %s\n", thisRoom->Room_Name);
+		printf ("POSSIBLE CONNECTIONS:");
+		for (i = 0; i < thisRoom->connections; i++) {
+			printf (" %s", thisRoom->Connection[i]->Room_Name);
+			if ( i < thisRoom->connections -1 )
+				printf (",");
+			else
+				printf (".\n");
+		}
+		printf ("WHERE TO? >");
+		fgets(UserInput,2047,stdin);
+		tmp = UserInput;
+		// A small loop to remove trailing newline(s)
+		while ( *tmp != '\0')
+		{
+			if ( *tmp == '\n' ) {
+				*tmp = 0;
+				break;
+			}	
+			*tmp++;
+		}
+		// getNextRoom from UserInput, then continue the loop
+	}
+	while ( (thisRoom = getNextRoom(thisRoom, UserInput)) != NULL );
+}
+
+/* ******************************************************* 
+ *
+ * Takes the current room and a RoomChoice string; if 
+ * RoomChoice is a valid navigation step, return the pointer
+ * to the Room struct with that name. Otherwise, print an error 
+ * and return the room we're already in (ie, we don't move)
+ *
+ * ***************************************************** */
+struct Room * getNextRoom(struct Room * thisRoom, char *RoomChoice)
+{
+
+	int i;
+
+	for (i = 0; i < thisRoom->connections; i++) {
+	  if ( (strcmp (thisRoom->Connection[i]->Room_Name, RoomChoice )) == 0 )
+		{
+			//match
+			return ( thisRoom->Connection[i]);
+		}
+	}
+	printf ("HUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n");
+	return (thisRoom);
+
+}
+
+/* ******************************************************* 
+ * Generate an array of 7 rooms.
+ * Roomnames are chosen at random from the name array.
+ * ***************************************************** */
 void GenerateRooms(struct Room * gameRooms[], int num_rooms)
 {
-	/* *******************************************************
-	 * Choose a list of ten different Room Names, hard coded into your program, 
-	 * and have your program randomly assign a room name to each room generated. 
-	 * For a given run of your program, 7 of the 10 room names will be used. 
-	 * Note that a room name cannot be used to in more than one room
-	 */
 	struct Room * this_room;
 	int room_number;
 	char *this_name;
@@ -155,6 +244,12 @@ void GenerateRooms(struct Room * gameRooms[], int num_rooms)
 }
 
 
+/* ******************************************************* 
+ * Take an array of Room pointers, and create connections
+ * between rooms for navigation.
+ * A room will have between 3 and 6 connections.
+ *
+ * ***************************************************** */
 void	ConnectRooms(struct Room * gameRooms[])
 {
 	int num_connections;
@@ -202,6 +297,17 @@ void	ConnectRooms(struct Room * gameRooms[])
 	}
 }
 
+/* ******************************************************* 
+ * A helper function for ConnectRooms.
+ * Attempts to create connections between two rooms; fails if one
+ * of the rooms has max_connections, or if the connection already
+ * exists.
+ *
+ * If it succeeds in making a forward connection 
+ * from room A to room B, it immediately makes the reverse connection
+ * from room B to room A.
+ *
+ * ***************************************************** */
 int  AddConnection (struct Room * RoomFrom, struct Room * RoomTo, int forward)
 {
 	int i;
@@ -228,7 +334,8 @@ int  AddConnection (struct Room * RoomFrom, struct Room * RoomTo, int forward)
 		}
 
 		// If these rooms are already connected, return an error: can't add this.
-		// Or return success?  TBD
+		// Or return success? Not while we subtract existing connections from
+		// connect count (line 283)
 		for (i=0; i < RoomFrom->connections; i++)
 		{
 			matches = ( strcmp((RoomFrom->Connection[i])->Room_Name, RoomTo->Room_Name) );
@@ -245,76 +352,217 @@ int  AddConnection (struct Room * RoomFrom, struct Room * RoomTo, int forward)
 	return(0);
 }
 
+/* ******************************************************* 
+ * Save the randomly generated rooms out to files
+ * ***************************************************** */
 void WriteRoomsToFiles(struct Room * gameRooms[], char * RoomDir)
 {
-	int i;
+	int i,r;
 	int result;
 	FILE * File;
 	char FileName[40];
+	struct stat *FileStat;
 	
 	GENERAL_DEBUG && printf ("Starting WriteRoomsToFiles\n");
 
-	result = mkdir (RoomDir, S_IRWXU);
+	result = mkdir (RoomDir, S_IRWXU | S_IRWXG);
 
 	for (i=0; i < rooms_in_game; i++)
 	{
   	sprintf(FileName, "%s/Roome_%d", RoomDir, i);
-		FILE_DEBUG && printf ("    Would create file named %s\n", FileName);
+		FILE_DEBUG && printf ("    Creating file named %s\n", FileName);
 		File = fopen (FileName, "w");
 		// TODO: check result
 		if (File == NULL)
 			printf ("There has been a terrible failure of the space-time continuum...\n");
 		PrintRoom(gameRooms[i], File);
 		// TODO: check result
-		close(File);
+		fclose(File);
+	}
+
+	if (FILE_DEBUG == 2 )
+	{
+		char * buffer;
+		buffer = (char *) malloc (1024 * sizeof(char));
+		FileStat = (struct stat *) malloc (sizeof (struct stat));
+		for (i=0; i < rooms_in_game; i++)
+		{
+  		sprintf(FileName, "%s/Roome_%d", RoomDir, i);
+			FILE_DEBUG && printf ("    Testing file named %s\n", FileName);
+			if ( ( r  = stat (FileName, FileStat)) != 0 )
+			{
+				printf ("stat %s: errno %d\n", FileName, errno);
+				perror(FileName);
+			}
+			else
+			{
+				FILE_DEBUG && printf ("    size = %d\n", FileStat->st_size);
+			}
+			File = fopen (FileName, "r");
+			if (File == NULL)
+				printf ("There has been a terrible failure of the space-time continuum...\n");
+			fgets (buffer, 1023, (FILE *) File);
+			printf ("     buf: %s\n", buffer);
+			fclose(File);
+		}
 	}
 }
-void ReadRoomsFromFiles(struct Room * gameRooms[], char * RoomDir)
+/* ******************************************************* 
+ *
+ * Read the saved room files and use them to fill a Room array.
+ * This is the array that will be used to play the game.
+ *
+ * ***************************************************** */
+void ReadRoomsFromFiles(struct Room * playRooms[], char * RoomDir)
 {
-	/* *******************************************************
-	 * Choose a list of ten different Room Names, hard coded into your program, 
-	 * and have your program randomly assign a room name to each room generated. 
-	 * For a given run of your program, 7 of the 10 room names will be used. 
-	 * Note that a room name cannot be used to in more than one room
-	 */
-	int 	n=0;
+	int 	n=0,c=0;
 	int 	room_number;
 	int		matches;
-	char  this_field[40];
-	char  this_value[40];
+	char  tmpstr[2048];
+	char	pathname[2048];
+	char	*buffer;
+	char 	*tmpptr;
+	size_t	sz;
 	struct Room * this_room;
-	DIR	* RoomDirectory;
-	FILE * RoomFile;
+	struct Room * connect_room;
+	DIR	* dirp;
+	FILE * fp;
 	struct dirent * RoomListing;
 
 	GENERAL_DEBUG && printf ("Starting ReadRoomsFromFiles\n");
 
-	RoomDirectory = opendir (RoomDir);
-	RoomListing = readdir (RoomDirectory);
-	FILE_DEBUG && printf ("readdir succeeded\n");
-	// TODO: check for failure
-	while (RoomListing != NULL) { 
-		RoomListing = readdir (RoomDirectory);
-		matches = strncmp(RoomListing->d_name, "Roome_",6 );
-		// Ignore files that don't match the pattern
-		if (matches != 0) 
+	buffer = (char *) malloc (2048 * (sizeof (char)));
+
+	if ( ( dirp = opendir (RoomDir)) == NULL )
+	{
+		perror (RoomDir);
+		// TODO: exit
+	}
+	RoomListing = readdir (dirp);
+	while (( RoomListing = readdir ( dirp ) ) != NULL )
+	{
+		// TODO
+		/* this code is reusable \/ */
+		if ((strncmp ( RoomListing->d_name, "Roome_", 6)) != 0 )
+		{
+			ROOM_DEBUG && printf ("found unuseful filename |%s|\n", RoomListing->d_name);
 			continue;
+		}
+		memset (pathname, 0, sizeof pathname);
+		sprintf (pathname, "%s/%s", RoomDir, RoomListing->d_name);
+		ROOM_DEBUG && printf ("opening file named |%s|\n", pathname);
+		fp = fopen (pathname, "r");
+		if ( fp == NULL)
+		{
+			perror(pathname);
+		}
 
-		/* Open the file */
-		FILE_DEBUG && printf ("opening file %s\n", RoomListing->d_name);
-		RoomFile = fopen ( RoomListing->d_name, "r");
-		//fscanf( RoomFile, "%[^:]:%s", this_field, this_value);
-		/* Read the contents of the file into the struct */
-
+		/* Now read the file into the room struct */
+		memset (buffer, 0, sizeof buffer);
 		this_room = (struct Room *) malloc (sizeof (struct Room));
-		//this_room->connections = 0;
-		//strcpy (this_field, this_room->Room_Name);
-		
-		gameRooms[n++] = this_room;
+		this_room->connections = 0;
+		c = 0;
+		/* this code is reusable /\ */
+		while (( fgets(buffer, 2047, (FILE *) fp)) != NULL )
+		{
+			tmpptr = buffer;
+			while ( *tmpptr != '\0')
+			{
+				if ( *tmpptr == '\n' ) {
+					*tmpptr = 0;
+					break;
+				}	
+				*tmpptr++;
+			}
+			FILE_DEBUG && printf ("read buffer |%s|\n", buffer);
+			if ((strncmp ( buffer, "ROOM NAME:", 10)) == 0 )
+			{
+				strcpy(this_room->Room_Name, (buffer + 11 * (sizeof(char))));
+				ROOM_DEBUG && printf ("Found room name|%s|\n", this_room->Room_Name);
+			}
+			else if ((strncmp ( buffer, "CONNECTION", 10)) == 0 )
+			{
+				//strcpy(this_room->Connection[c], (buffer + 14 * (sizeof(char))));
+				ROOM_DEBUG && printf ("Found connection |%s|\n",(buffer + 14 * (sizeof(char))));
+				c++;
+			}
+			else if ((strncmp ( buffer, "ROOM TYPE:", 10)) == 0 )
+			{
+				strcpy(this_room->Room_Type, (buffer + 11 * (sizeof(char))));
+				ROOM_DEBUG && printf ("Found room type|%s|\n", this_room->Room_Type);
+			}
+			else 
+			{
+				fprintf(stderr, "Found unparseable file line, ignoring\n");
+				fprintf(stderr, "   (%s)\n", buffer);
+			}
+			memset (buffer, 0, sizeof buffer);
+		}
+		fclose(fp);
+		playRooms[n++] = this_room;
+	}
+
+	/* Now read all the files again and add the room connections */
+	rewinddir(dirp);
+	RoomListing = readdir (dirp);
+	while (( RoomListing = readdir ( dirp ) ) != NULL )
+	{
+		/* this code is reusable \/ */
+		if ((strncmp ( RoomListing->d_name, "Roome_", 6)) != 0 )
+		{
+			CONNECT_DEBUG && printf ("found unuseful filename |%s|\n", RoomListing->d_name);
+			continue;
+		}
+		memset (pathname, 0, sizeof pathname);
+		sprintf (pathname, "%s/%s", RoomDir, RoomListing->d_name);
+		CONNECT_DEBUG && printf ("Connecting pass: opening file named |%s|\n", pathname);
+		fp = fopen (pathname, "r");
+		if ( fp == NULL)
+		{
+			perror(pathname);
+		}
+		/* this code is reusable /\ */
+
+
+		CONNECT_DEBUG && printf ("Connecting pass: trying now\n");
+		this_room = NULL;
+		while (( fgets(buffer, 2047, (FILE *) fp)) != NULL )
+		{
+			tmpptr = buffer;
+			while ( *tmpptr != '\0')
+			{
+				if ( *tmpptr == '\n' ) {
+					*tmpptr = 0;
+					break;
+				}	
+				*tmpptr++;
+			}
+			CONNECT_DEBUG && printf ("Connecting pass: read buffer |%s|\n", buffer);
+			if ((strncmp ( buffer, "ROOM NAME:", 10)) == 0 )
+			{
+				strcpy(tmpstr, (buffer + 11 * (sizeof(char))));
+				this_room = getRoomByName(playRooms, rooms_in_game, tmpstr);
+				CONNECT_DEBUG && printf ("Connecting pass: found room name|%s|\n", this_room->Room_Name);
+			}
+			else if ((strncmp ( buffer, "CONNECTION", 10)) == 0 )
+			{
+				strcpy(tmpstr, (buffer + 14 * (sizeof(char))));
+				connect_room = getRoomByName(playRooms, rooms_in_game, tmpstr);
+				// TODO: check for error
+				this_room->Connection[this_room->connections++] = connect_room;
+				CONNECT_DEBUG && printf ("Connecting pass: Found connection |%s|\n",(buffer + 14 * (sizeof(char))));
+			}
+		}
+		fclose(fp);
 	}
 	GENERAL_DEBUG && printf ("Finishing ReadRoomsFromFiles\n");
 }
 
+/* ******************************************************* 
+ *
+ * A helper function that prints out a Room's information
+ *
+ * ***************************************************** */
 void PrintRoom (struct Room * this_room, FILE * File)
 {
 	int  i=0;
@@ -334,108 +582,75 @@ void PrintRoom (struct Room * this_room, FILE * File)
 	
 	fprintf(File, "ROOM TYPE: %s\n", this_room->Room_Type);
 }
+
+/* ******************************************************* 
+ *
+ * Returns a Room pointer for the room that matches a given name.
+ *
+ * ***************************************************** */
+struct Room * getRoomByName(struct Room * RoomArray[], int ArraySz, char * MatchName)
+{
+	int n;
+
+	CONNECT_DEBUG && printf ("Starting getRoomByName matching %s\n", MatchName);
+	for (n=0; n<ArraySz; n++)
+	{
+		CONNECT_DEBUG && printf ("Comparing %s\n", RoomArray[n]->Room_Name);
+		if ((strcmp(RoomArray[n]->Room_Name, MatchName)) == 0 ){
+			CONNECT_DEBUG && printf ("Ending getRoomByName with valid pointer\n");
+			return (RoomArray[n]);
+		}
+	}
+	CONNECT_DEBUG && printf ("Ending getRoomByName with NULL pointer\n");
+	return (NULL);
+}
+
+/* ******************************************************* 
+ *
+ * Clean things up. Not used for this assignment.
+ *
+ * ***************************************************** */
+void RemoveDirectory (char * DirectoryName)
+{
+	DIR	* dirp;
+	struct dirent * DirListing;
+	char pathname[2048];
+
+	GENERAL_DEBUG && printf ("Starting RemoveDirectory\n");
+
+	if ( ( dirp = opendir (DirectoryName)) == NULL )
+	{
+		perror (DirectoryName);
+		// TODO: exit
+	}
+	DirListing = readdir (dirp);
+	while (( DirListing = readdir ( dirp ) ) != NULL )
+	{
+		if (((strcmp ( DirListing->d_name, ".")) == 0) 
+			|| ((strcmp ( DirListing->d_name, ".."))==0) )
+		{
+			ROOM_DEBUG && printf ("found unremovable file |%s|\n", DirListing->d_name);
+			continue;
+		}
+		sprintf (pathname, "%s/%s", DirectoryName, DirListing->d_name);
+		if ( (unlink ( pathname )) != 0 )
+		{
+			perror (pathname); 
+			// TODO: exit? probably not; keep going
+		}
+	}
+	if ( (rmdir (DirectoryName )) != 0 )
+	{
+			perror (DirectoryName); 
+	}
+}
 	
+/* ******************************************************* 
+ * Return a random number between min and max, inclusive
+ * ***************************************************** */
 int  RandNum(int min, int max)
 {
 	int maxPlus = max + 1;
 	return (( rand() % (maxPlus - min) ) + min);
 }
 
-/* *******************************************************
-	 * The first thing your program must do is generate 7 different room files
-	 * , one room per file, in a directory called <username>.rooms.<process
-	 * id>. You get to pick the names for those files, which should be 
-	 * hard-coded into your program. For example, the directory, if I was writing
-	 * the program, should be hard-coded (except for the process id number), as: 
-	 * 
-	 * abrasss.rooms.$PID
-	 * 
-	 * Each room has a Room Name, at least 3 outgoing connections (and at
-	 * most 6 outgoing connections, where the number of outgoing connections
-	 * is random) from this room to other rooms, and a room type. The connections
-	 * from one room to the others should be randomly assigned – i.e. which
-	 * rooms connect to each other one is random - but note that if room A
-	 * connects to room B, then room B must have a connection back to room A. 
-	 * Because of these specs, there will always be at least one path through. 
-	 * Note that a room cannot connect to itself.
-	 * 
-	 * Each file that stores a room must have exactly this form, where the … is 
-	 * additional room connections, as randomly generated:
-	 * 
-	 * ROOM NAME: <room name>
-	 * CONNECTION 1: <room name>
-	 * …
-	 * ROOM TYPE: <room type>
-	 * 
-	 * The possible room type entries are: START_ROOM, END_ROOM, and MID_ROOM. 
-	 * The assignment of which room gets which type should be random. Naturally, 
-	 * only one room should be assigned as the start room, and only one
-	 * room should be assigned as the end room.
-*/
-
-
-
-	/* GENERATE ROOMS **************************************************** /
-	
-	/* *******************************************************
-	 * Upon being executed, after the rooms are generated, the game should
-	 * present an interface to the player. Note that the room data must be
-	 * read back into the program from the files, for use by the game. You
-	 * can either do all of this reading immediately after writing them,
-	 * or read each file in as needed in the course of the game.
-	 *
-	 */
-	/* *******************************************************
-	 * The interface should list where the player current is, and list the
-	 * possible connections that can be followed. It should also then have
-	 * a prompt. Here is the form that must be used:
-	 *
-	 * CURRENT LOCATION: XYZZY
-	 * POSSIBLE CONNECTIONS: PLOVER, Dungeon, twisty.
-	 * WHERE TO? >
-	 *
-	 * The cursor should be placed just after the > sign. Note the punctuation
-	 * used: colons on the first two lines, commas on the second line, and
-	 * the period on the second line. All are required.
-	 */
-	/* *******************************************************
-	 *
-	 * When the user types in the exact name of a connection to another room
-	 * (Dungeon, for example), and then hits return, your program should
-	 * write a new line, and then continue running as before. For example, 
-	 * if I typed twisty above, here is what the output should look like:
-	 *
-	 * 	CURRENT LOCATION: XYZZY
-	 * 	POSSIBLE CONNECTIONS: PLOVER, Dungeon, twisty.
-	 * 	WHERE TO? >twisty
-	 *
-	 * If the user types anything but a valid room name from this location
-	 * (case matters!), the program should return an error line that says
-	 * “HUH? I DON’T UNDERSTAND THAT ROOM. TRY AGAIN.”, and repeat the current
-	 * location and prompt, as follows:
-	 *
-	 * 	CURRENT LOCATION: XYZZY
-	 * 	POSSIBLE CONNECTIONS: PLOVER, Dungeon, twisty.
-	 * 	WHERE TO? >Twisty
-	 *
-	 * 	HUH? I DON’T UNDERSTAND THAT ROOM. TRY AGAIN.
-	 *
-	 */
-	/* *******************************************************
-	 * Trying to go to an incorrect location does not increment the path
-	 * history or the step count. Once the user has reached the End Room, 
-	 * the program should indicate that it has been reached. It should
-	 * also print out the path the user has taken to get there, the number
-	 * of steps, and a congratulatory message. Here is a complete game example, 
-	 * showing the winning messages and formatting, and the return to the
-	 * prompt:
-	 *
-	 *	YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!
-	 *	YOU TOOK 2 STEPS. YOUR PATH TO VICTORY WAS:
-	 *	twisty
-	 *	Dungeon
-	 *	%
-	 *
-	 * Note the punctuation used: I expect the same punctuation in your program.
-	 *
-	 */
