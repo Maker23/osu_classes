@@ -44,9 +44,9 @@ struct command
 	char * input_filename;
 	char * output_filename;
 	int argcount;
-	int	redirect_output;
-	int	redirect_input;
-	int	background;
+	int	redirect_output;// boolean
+	int	redirect_input;	// boolean
+	int	background;			// boolean
 	int	csignal;
 };
 
@@ -196,8 +196,6 @@ int runCommand(struct command * Command, char * PATH)
 	else
 	{
 		// else fork
-		//TODO: check for backgrounding
-		
 		pid = fork();
 		if ( pid < 0 )
 		{
@@ -239,6 +237,7 @@ int runCommand(struct command * Command, char * PATH)
 int runChild(struct command * Command)
 {
 	int i;
+	int io;
 	int status;
 
 	if (CHILD_DEBUG)
@@ -249,6 +248,17 @@ int runChild(struct command * Command)
 		printf ("|\n");
 	}
 	// TODO: Reset input and output as needed
+
+ 	if ( Command->redirect_input && (Command->input_filename != NULL))
+		if ( freopen(Command->input_filename, "r", stdin) == NULL )
+			perror(Command->input_filename);
+ 	if ( Command->redirect_output && (Command->output_filename != NULL))
+		if ( freopen(Command->output_filename, "w", stdout) == NULL )
+			perror(Command->output_filename);
+
+
+
+  //
 	status = execvp(Command->args[0], Command->args);
 	if ( status < 0 )
 	{
@@ -261,7 +271,6 @@ int runChild(struct command * Command)
 	//TODO: 
 	// check for backgrounding, redirect_input, redirect_output
 	// if Child, and redirect, then open file and redirect
-	// Trap and handle SIGINT. If interrupted, return signal value
 }
 
 struct command * parse_command_line ( char * inputLine)
