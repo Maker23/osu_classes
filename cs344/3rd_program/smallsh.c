@@ -83,6 +83,8 @@ void inner_loop()
 
 	while (1)
 	{
+		checkForBackgroundChildren();
+
 		memset (input, 0, sizeof input);
 		// Print the prompt and get the input
 		fprintf(stdout, "%s", PROMPT);
@@ -142,7 +144,6 @@ void inner_loop()
 
 		LOGIC_DEBUG && printf("DBG: status = %d\n", status);
 
-		checkForBackgroundChildren();
 	
 		// Free malloc'd memory and loop again
 		free (Command);
@@ -232,7 +233,7 @@ int runCommand(struct command * Command, char * PATH)
 			}
 			else 
 			{
-				printf("[] %d\n", pid);
+				printf("[pid %d]\n", pid);
 			}
 		}
 	}
