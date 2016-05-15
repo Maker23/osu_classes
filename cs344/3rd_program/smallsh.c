@@ -12,6 +12,7 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h> // For random numbers
 #include <string.h>
@@ -211,6 +212,7 @@ int runCommand(struct command * Command, char * PATH)
 		}
 		else 
 		{
+			// TODO: implement backgrounding
 			// Parent process; poll for status
 			CHILD_DEBUG &&	printf ("DBG: Parent is waiting for process %d\n", pid );
 			do {
@@ -239,6 +241,9 @@ int runChild(struct command * Command)
 	int i;
 	int io;
 	int status;
+	int fdin, fdout;
+
+	mode_t mode = ( S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 
 	if (CHILD_DEBUG)
 	{
@@ -246,31 +251,38 @@ int runChild(struct command * Command)
 		for (i=0; i< Command->argcount; i++) 
 			printf (" %s", Command->args[i]);
 		printf ("|\n");
+		fflush(stdout);
+		fflush(stdin);
 	}
-	// TODO: Reset input and output as needed
-
+	//
+  // reset stdin and stdout before exec
+	//
  	if ( Command->redirect_input && (Command->input_filename != NULL))
-		if ( freopen(Command->input_filename, "r", stdin) == NULL )
+	{
+		if ( ( fdin = open(Command->input_filename, O_RDONLY, mode)) < 0 )
+		{
 			perror(Command->input_filename);
+			return (-1);
+		}
+		dup2(fdin, STDIN_FILENO);
+	}
  	if ( Command->redirect_output && (Command->output_filename != NULL))
-		if ( freopen(Command->output_filename, "w", stdout) == NULL )
+	{
+		if ( ( fdout = open (Command->output_filename, O_WRONLY|O_CREAT|O_TRUNC, mode)) < 0 )
+		{
 			perror(Command->output_filename);
+			return (-1);
+		}
+		dup2(fdout, STDOUT_FILENO);
+	}
 
-
-
-  //
+	// exec the child process, capture the status
 	status = execvp(Command->args[0], Command->args);
 	if ( status < 0 )
 	{
 		perror(Command->args[0]);
 	}
-	fflush(stdout);
-	fflush(stdin);
 	return(status);
-	//
-	//TODO: 
-	// check for backgrounding, redirect_input, redirect_output
-	// if Child, and redirect, then open file and redirect
 }
 
 struct command * parse_command_line ( char * inputLine)
