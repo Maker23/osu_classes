@@ -56,8 +56,10 @@ void inner_loop();
 void * printCommandStruct(struct command * Command);
 void catchInterrupt_Parent(int sig);
 void killProcessGroup();
+void checkForBackgroundChildren();
 struct command * parse_command_line ( char * inputLine);
 int runCommand (struct command * Command, char * PATH);
+int returnChildStatus ( struct command * Command, int status );
 
 main(int argc, char ** argv)
 {
@@ -108,6 +110,10 @@ void inner_loop()
 		/* Now parse */
 		Command = parse_command_line(input);
 		LOGIC_DEBUG && printf("DBG: *Command = %p\n", Command);
+		if (Command == NULL ) {
+			status=-1;
+			continue;			// failed to parse
+		}
 		if ( strcmp(Command->args[0], "exit") == 0 )
 			return;		// If input == exit, exit
 		if ( strncmp (Command->args[0], "#", 1 ) == 0 )
@@ -135,6 +141,8 @@ void inner_loop()
 		csignal = Command->csignal;
 
 		LOGIC_DEBUG && printf("DBG: status = %d\n", status);
+
+		checkForBackgroundChildren();
 	
 		// Free malloc'd memory and loop again
 		free (Command);
@@ -152,7 +160,6 @@ int runCommand(struct command * Command, char * PATH)
 	LOGIC_DEBUG && printf ("DBG: Starting runCommand\n");
 	(LOGIC_DEBUG || FILE_DEBUG) && printCommandStruct(Command);
 
-  // if Command->args[0] is a built in, do that
 	if ( strcmp(Command->args[0], "cd") == 0 )
 	{
 		// CD code here
@@ -215,24 +222,53 @@ int runCommand(struct command * Command, char * PATH)
 			// TODO: implement backgrounding
 			// Parent process; poll for status
 			CHILD_DEBUG &&	printf ("DBG: Parent is waiting for process %d\n", pid );
-			do {
-				w_pid = waitpid(pid, &status, WUNTRACED);
-			}
-			while (! WIFEXITED(status) && !WIFSIGNALED(status));
-			if (WIFEXITED(status)) 
+			if ( ! Command->background ) 
 			{
-				CHILD_DEBUG && printf("child exited, status=%d\n", WEXITSTATUS(status));
-				status =  WEXITSTATUS(status);
+				do {
+					w_pid = waitpid(pid, &status, WUNTRACED);
+				}
+				while (! WIFEXITED(status) && !WIFSIGNALED(status));
+				status = returnChildStatus (Command, status);
 			}
-			else if (WIFSIGNALED(status)) 
+			else 
 			{
-				printf("child killed (signal %d)\n", WTERMSIG(status));
-				Command->csignal =  WTERMSIG(status);
-				status =  WIFSIGNALED(status);
+				printf("[] %d\n", pid);
 			}
 		}
 	}
 	// if interrupted, return signal value
+	return(status);
+}
+
+void checkForBackgroundChildren()
+{
+	pid_t w_pid;
+	int status;
+	/* Poll for status of any backgrounded processes that have finished */
+	CHILD_DEBUG && printf ("polling for backgrounded processes now\n");
+	while ( (w_pid = waitpid(WAIT_MYPGRP, &status, WNOHANG |WUNTRACED)) > 0)
+	{
+		CHILD_DEBUG && printf ("poll, w_pid = %d\n", w_pid);
+		printf("pid(%d): ", w_pid);
+		status = returnChildStatus(NULL, status);
+	}
+}
+
+int returnChildStatus ( struct command * Command, int status )
+{
+	if (WIFEXITED(status)) 
+	{
+		(CHILD_DEBUG || (Command == NULL)) && printf("child exited, status=%d\n", WEXITSTATUS(status));
+		status =  WEXITSTATUS(status);
+	}
+	else if (WIFSIGNALED(status)) 
+	{
+		printf("child killed (signal %d)\n", WTERMSIG(status));
+		if (Command != NULL )
+			Command->csignal =  WTERMSIG(status);
+		status =  WIFSIGNALED(status);
+	}
+	fflush(stdout);
 	return(status);
 }
 
@@ -326,11 +362,13 @@ struct command * parse_command_line ( char * inputLine)
 			if (! has_command)
 			{
 				printf("Syntax error: Redirect without a command\n");
+				return(NULL);
 				//	If we don't alread have a command, this is an error
 			}
 			else if ( looking_for_filename )
 			{
-				printf("Syntax error: Expecting filename after redirect");
+				printf("Syntax error: Expecting filename after redirect\n");
+				return(NULL);
 			}
 			else
 			{
@@ -359,7 +397,8 @@ struct command * parse_command_line ( char * inputLine)
 			// Is it an &  ?  
 			if (looking_for_filename) 
 			{
-				printf("Syntax error: Expecting filename after redirect");
+				printf("Syntax error: Expecting filename after redirect\n");
+				return(NULL);
 			}
 			else if ( ! has_command )
 			{
@@ -429,7 +468,6 @@ struct command * parse_command_line ( char * inputLine)
 void catchInterrupt_Parent(int sig)
 {
 	LOGIC_DEBUG && printf("Parent caught signal %d\n", sig);
-	//TODO: send to any backgrounded processes
 	signal (SIGINT, catchInterrupt_Parent);
 	return;
 }
