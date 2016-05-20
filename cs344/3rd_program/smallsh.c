@@ -32,7 +32,8 @@
 #define PARSING_DEBUG 0
 #define GENERAL_DEBUG 0
 
-#define PROMPT "smallsh> "
+// #define PROMPT "smallsh> "
+#define PROMPT ":"
 
 #define MAX_CMD_LENGTH 2048
 #define MAX_ARG_COUNT 512
@@ -57,7 +58,7 @@ struct command
 };
 
 // Function prototypes
-void inner_loop();
+void innerLoop();
 void * printCommandStruct(struct command * Command);
 void catchInterruptParent(int sig);
 void killProcessGroup();
@@ -68,21 +69,21 @@ int returnChildStatus ( struct command * Command, int status );
 
 // Global signal struct
 struct sigaction p_sigact;
-	p_sigact.sa_flags = 0;
-	sigemptyset(&p_sigact.sa_mask);
 
 main(int argc, char ** argv)
 {
 	// Trap SIGINT for handling
+	p_sigact.sa_flags = 0;
+	sigemptyset(&p_sigact.sa_mask);
 	p_sigact.sa_handler = catchInterruptParent;
 	sigaction(SIGINT, &p_sigact, NULL);
 
 
 	/* Loop indefinitely */
-	inner_loop();
+	innerLoop();
 }
 
-void inner_loop()
+void innerLoop()
 {
 	char input[MAX_CMD_LENGTH];
 	struct command * Command;
@@ -94,6 +95,7 @@ void inner_loop()
 
 	while (1)
 	{
+		// If any children have exited, print out their info
 		checkForBackgroundChildren();
 
 		memset (input, 0, sizeof input); // zero the keyboard input buffer
@@ -102,8 +104,9 @@ void inner_loop()
 		fprintf(stdout, "%s", PROMPT);
 		fgets(input, sizeof input, stdin);
 		fflush(stdout); fflush(stdin);
+		// If input is max length the last position should be null regardless
+		input[sizeof(input)] = '\0';
 		// Remove trailing newline(s)
-		// TODO: if input is max length the last position should be null regardless
 		while (input[strlen(input)-1] == '\n')
 			input[strlen(input)-1] = '\0';
 
@@ -319,8 +322,19 @@ int runChild(struct command * Command)
 		fflush(stdin);
 	}
 
-	// TODO: If background and no stdin, redirect stdin to /dev/null
 	// Redirect stdin and stdout as necessary
+ 	if ( Command->background && !(Command->redirect_input))
+	{
+		// If background and no stdin, redirect stdin to /dev/null
+		CHILD_DEBUG && printf("DBG: background with no input redirect");
+		fflush(stdout);
+		if ( ( fdin = open("/dev/null", O_RDONLY, mode)) < 0 )
+		{
+			perror("/dev/null");
+			return (-1);
+		}
+		dup2(fdin, STDIN_FILENO);
+	}
  	if ( Command->redirect_input && (Command->input_filename != NULL))
 	{
 		if ( ( fdin = open(Command->input_filename, O_RDONLY, mode)) < 0 )
@@ -471,10 +485,6 @@ struct command * parseCommandLine ( char * inputLine)
 				thisCommand->args[argcount++] = inputWord[i];
 				has_command=TRUE;
 			}
-
-		// Examine the word.  Is it a built-in?
-		// If not, it's a command 
-			// Now everything that's not a special character is an argument.
 		}
 	}
 	thisCommand->argcount = argcount;
@@ -539,7 +549,7 @@ void killProcessGroup()
 	// ignore signal in parent - since the parent is also in the process group
 	if ( sigaction (SIGTERM, NULL, &save_sigact) < 0)
 	{
-		; // sigaction fail	TODO: What do we do about that :)
+		; // sigaction fail. What do we do about that :) Ignore I guess
 	}
 	else 
 	{
@@ -557,30 +567,3 @@ void killProcessGroup()
 
 }
 
-/*
- * The general syntax of a command line is:
- * 
- *	command [arg1 arg2 ...] [< input_file] [> output_file] [&]
- *
- * …where items in square brackets are optional.  You can assume that
- * a command is made up of words separated by spaces. 
- *
- * The special symbols * <, >, and & are recognized, but they must
- * be surrounded by spaces like other words. If the command is to be
- * executed in the background, the last word must be &. If standard
- * input or output is to be redirected , the > or < words followed
- * by a filename word must appear after all the arguments. Input redirection
- * can appear before or after output redirection.
- *
- * Your shell does not need to support any quoting; so arguments with
- * spaces inside them are not possible.
- *
- * Your shell must support command lines with a maximum length of 2048
- * characters, and a maximum of 512 arguments. You do not need to do
- * any error checking on the syntax of the command line.
- *
- * Finally, your shell should allow blank lines and comments.  Any
- * line that begins with the # character is a comment line and should
- * be ignored.  A blank line (one without any commands) should do nothing; 
- * your shell should just re-prompt for another command.
- */
