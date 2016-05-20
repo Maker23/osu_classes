@@ -2,12 +2,16 @@
  *                      Shoshana Abrass
  *                  abrasss@oregonstate.edu
  *                    CS344_400 Program 3
- *                       May TODO, 2016
+ *                       May 23, 2016
  *
- * Your shell will allow for the redirection of standard input and
- * standard output and it will support both foreground and background
- * processes.
  *
+ * I am indebted to: 
+ * 	= Stephen Brennan's tutorial "Write a Shell in C", 
+ * 	  which clearly lays out the logical flow of a shell program
+ *	= Various gnu.org docs on subjects like process completion (for waitpid),
+ *	  duplicating descriptors, and signal handling
+ *  = The Linux man pages
+ *  = cplusplus.com: the best C/C++ documentation anywhere
  *
  */
 
@@ -31,6 +35,7 @@
 #define PROMPT "smallsh> "
 
 #define MAX_CMD_LENGTH 2048
+#define MAX_ARG_COUNT 512
 #define FALSE 0
 #define TRUE  1
 
@@ -41,7 +46,7 @@
 struct command 
 {
 	char commandline[MAX_CMD_LENGTH]; // A string
-	char * args[512]; // An array of pointers
+	char * args[MAX_ARG_COUNT]; // An array of pointers
 	char * input_filename;
 	char * output_filename;
 	int argcount;
@@ -54,18 +59,24 @@ struct command
 // Function prototypes
 void inner_loop();
 void * printCommandStruct(struct command * Command);
-void catchInterrupt_Parent(int sig);
+void catchInterruptParent(int sig);
 void killProcessGroup();
 void checkForBackgroundChildren();
-struct command * parse_command_line ( char * inputLine);
+struct command * parseCommandLine ( char * inputLine);
 int runCommand (struct command * Command, char * PATH);
 int returnChildStatus ( struct command * Command, int status );
 
+// Global signal struct
+struct sigaction p_sigact;
+	p_sigact.sa_flags = 0;
+	sigemptyset(&p_sigact.sa_mask);
+
 main(int argc, char ** argv)
 {
-	/* Initialize the shell by reading config files */
-	// Trap SIGINT and kill foreground running process; if no fg process, ignore
-	signal (SIGINT, catchInterrupt_Parent);
+	// Trap SIGINT for handling
+	p_sigact.sa_handler = catchInterruptParent;
+	sigaction(SIGINT, &p_sigact, NULL);
+
 
 	/* Loop indefinitely */
 	inner_loop();
@@ -73,7 +84,7 @@ main(int argc, char ** argv)
 
 void inner_loop()
 {
-	char input[MAX_CMD_LENGTH]; //hardcoded for now, TODO
+	char input[MAX_CMD_LENGTH];
 	struct command * Command;
 	int status = 0;
 	int csignal = 0;
@@ -85,47 +96,53 @@ void inner_loop()
 	{
 		checkForBackgroundChildren();
 
-		memset (input, 0, sizeof input);
-		// Print the prompt and get the input
+		memset (input, 0, sizeof input); // zero the keyboard input buffer
+
+		// Print the prompt and get the user's command-line input
 		fprintf(stdout, "%s", PROMPT);
 		fgets(input, sizeof input, stdin);
-		fflush(stdout);
-		fflush(stdin);
-
-		/* get user input */
-
+		fflush(stdout); fflush(stdin);
+		// Remove trailing newline(s)
+		// TODO: if input is max length the last position should be null regardless
 		while (input[strlen(input)-1] == '\n')
 			input[strlen(input)-1] = '\0';
 
 		PARSING_DEBUG && printf ("DBG: received |%s|\n", input);
 
-		/* Save a little time by checking before parsing.  If input == exit, exit */
+		/* Save a little time by checking before parsing. */
 		if ( strcmp (input, "" ) == 0 )
 			continue;
 		if ( strcmp (input, "exit" ) == 0 )
 		{
-			// Kill all children
+			// Kill all children and exit
 			killProcessGroup();
 			return;
 		}
 			
-		/* Now parse */
-		Command = parse_command_line(input);
+		/* Now parse the command and look for special cases */
+		Command = parseCommandLine(input);
 		LOGIC_DEBUG && printf("DBG: *Command = %p\n", Command);
+		fflush(stdout); fflush(stdin);
+
 		if (Command == NULL ) {
 			status=-1;
-			continue;			// failed to parse
+			continue;		// failed to parse
 		}
 		if ( strcmp(Command->args[0], "exit") == 0 )
-			return;		// If input == exit, exit
+		{
+			// Kill all children and exit
+			killProcessGroup();
+			return;	
+		}
 		if ( strncmp (Command->args[0], "#", 1 ) == 0 )
 		{
+			// This is a comment, ignore the rest of the line
 			status=0;	
-	 		continue; // If the first character is a comment, ignore the rest of the line
+	 		continue; 
 		}
 		if ( strcmp(Command->args[0], "status") == 0 )
 		{
-			// If input==status, print the status (or signal) of the previous command
+			// Print the status (or signal) of the previous command
 			if ( csignal ) 
 			{
 				printf("terminated by signal %d\n", csignal);
@@ -138,12 +155,11 @@ void inner_loop()
 			continue;
 		}
 
-		/* execute user input */
+		/* No special cases found - run the user's command */
 		status = runCommand(Command, PATH);
-		csignal = Command->csignal;
+		csignal = Command->csignal; // save any signal before freeing the struct
 
 		LOGIC_DEBUG && printf("DBG: status = %d\n", status);
-
 	
 		// Free malloc'd memory and loop again
 		free (Command);
@@ -161,6 +177,13 @@ int runCommand(struct command * Command, char * PATH)
 	LOGIC_DEBUG && printf ("DBG: Starting runCommand\n");
 	(LOGIC_DEBUG || FILE_DEBUG) && printCommandStruct(Command);
 
+  /* 
+	 * Look for our built-in commands first. Supported commands are:
+	 *
+	 * 	cd		Change directory
+	 * 	pwd		Print Working Directory
+	 *
+	 */
 	if ( strcmp(Command->args[0], "cd") == 0 )
 	{
 		// CD code here
@@ -204,7 +227,8 @@ int runCommand(struct command * Command, char * PATH)
 	}
 	else
 	{
-		// else fork
+		
+		// Not a built-in command; fork a child and exec the command
 		pid = fork();
 		if ( pid < 0 )
 		{
@@ -220,11 +244,11 @@ int runCommand(struct command * Command, char * PATH)
 		}
 		else 
 		{
-			// TODO: implement backgrounding
-			// Parent process; poll for status
+			// Parent process
 			CHILD_DEBUG &&	printf ("DBG: Parent is waiting for process %d\n", pid );
 			if ( ! Command->background ) 
 			{
+				// Run in the foreground; parent waits for child to exit
 				do {
 					w_pid = waitpid(pid, &status, WUNTRACED);
 				}
@@ -233,11 +257,12 @@ int runCommand(struct command * Command, char * PATH)
 			}
 			else 
 			{
+				// Run in the background; print the child process ID and return
 				printf("[pid %d]\n", pid);
 			}
 		}
 	}
-	// if interrupted, return signal value
+
 	return(status);
 }
 
@@ -245,8 +270,9 @@ void checkForBackgroundChildren()
 {
 	pid_t w_pid;
 	int status;
+
 	/* Poll for status of any backgrounded processes that have finished */
-	CHILD_DEBUG && printf ("polling for backgrounded processes now\n");
+	CHILD_DEBUG && printf ("polling for backgrounded processes\n");
 	while ( (w_pid = waitpid(WAIT_MYPGRP, &status, WNOHANG |WUNTRACED)) > 0)
 	{
 		CHILD_DEBUG && printf ("poll, w_pid = %d\n", w_pid);
@@ -275,15 +301,16 @@ int returnChildStatus ( struct command * Command, int status )
 
 int runChild(struct command * Command)
 {
-	int i;
-	int io;
 	int status;
 	int fdin, fdout;
-
+	
+	// permission mode for files we create
 	mode_t mode = ( S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 
+	// noisy debugging info
 	if (CHILD_DEBUG)
 	{
+		int i;
 		printf ("DBG: In runChild forking: |");
 		for (i=0; i< Command->argcount; i++) 
 			printf (" %s", Command->args[i]);
@@ -291,9 +318,9 @@ int runChild(struct command * Command)
 		fflush(stdout);
 		fflush(stdin);
 	}
-	//
-  // reset stdin and stdout before exec
-	//
+
+	// TODO: If background and no stdin, redirect stdin to /dev/null
+	// Redirect stdin and stdout as necessary
  	if ( Command->redirect_input && (Command->input_filename != NULL))
 	{
 		if ( ( fdin = open(Command->input_filename, O_RDONLY, mode)) < 0 )
@@ -313,51 +340,54 @@ int runChild(struct command * Command)
 		dup2(fdout, STDOUT_FILENO);
 	}
 
-	// exec the child process, capture the status
+	// Exec the child process, capture the status
+	// Note that execvp uses the PATH environment variable
 	status = execvp(Command->args[0], Command->args);
 	if ( status < 0 )
-	{
 		perror(Command->args[0]);
-	}
+
 	return(status);
 }
 
-struct command * parse_command_line ( char * inputLine)
+struct command * parseCommandLine ( char * inputLine)
 {
 	struct command * thisCommand;
-	char *inputWord[512];
-	char *filename;
-	int 	w, i, argcount;
-	int background, redirect_input, redirect_output; // used as booleans
-	int has_command, looking_for_filename; // used as booleans
+	char *inputWord[MAX_ARG_COUNT];
+	int i;
+	int wordcount, argcount;
+	int has_command = FALSE;  // boolean
+	int looking_for_filename = FALSE; // booleans
 
-	// Initialize variables
-	w=0;
-	argcount=0;
-	has_command = FALSE;
-	looking_for_filename = FALSE;
-	filename=(char *)NULL;
+	wordcount=0;	// the number of tokens or 'words' in the command line
+	argcount=0;		// the number of command arguments
 
-	thisCommand = (struct command *) malloc (sizeof (struct command));// TODO or fail
+	thisCommand = (struct command *) malloc (sizeof (struct command));
+	if (thisCommand == NULL) 
+		return(NULL); // malloc failed
 	memset (thisCommand, 0, sizeof (struct command));
-	strcpy(thisCommand->commandline,inputLine); // TODO or fail
+	strcpy(thisCommand->commandline,inputLine);
 
-	// TODO shoudl this be a do-while loop?
-	inputWord[w] = strtok(thisCommand->commandline, " 	"); // space and tab as delimiters
-	while ( inputWord[w] != NULL )
+	// Parse the line into tokens, using space and tab as delimiters
+	inputWord[wordcount] = strtok(thisCommand->commandline, " 	");
+	while ( inputWord[wordcount] != NULL )
 	{
-		w++;
-		inputWord[w] = strtok(NULL, " 	");
+		wordcount++;
+		inputWord[wordcount] = strtok(NULL, " 	");
 	}
 	
+	// Helpful debugging
 	if ( PARSING_DEBUG > 1 ) {
 		printf ("Tokenized stream:\n");
-		for (i=0; i < w; i++) 
+		for (i=0; i < wordcount; i++) 
 			printf ("token %d  :%s:\n", i, inputWord[i]);
 	}
+
+	// Now step through the tokens and build the Command struct
+	// Special tokens, such as >,<,&, are treated differently
+	//
+	for (i=0; i < wordcount; i++) {
 	
-	for (i=0; i < w; i++) {
-		// Is it a redirect <>  ?
+		// Is it a redirect symbol? <,> 
 		if (strcmp(inputWord[i], "<") == 0 || strcmp(inputWord[i], ">") == 0 )
 		{
 			if (! has_command)
@@ -388,9 +418,8 @@ struct command * parse_command_line ( char * inputLine)
 				}
 				else 
 				{
-					// This should never happen!!
+					// This should never happen!! why do we even have this button?
 				} 
-
 			}
 		}
 		else if ( strcmp(inputWord[i], "&") == 0 )
@@ -466,10 +495,14 @@ struct command * parse_command_line ( char * inputLine)
 
 }
 
-void catchInterrupt_Parent(int sig)
+void catchInterruptParent(int sig)
 {
 	LOGIC_DEBUG && printf("Parent caught signal %d\n", sig);
-	signal (SIGINT, catchInterrupt_Parent);
+	// Parent process ignores the interrupt
+	// We print a newline here to keep the prompt clean
+	printf("\n");
+	fflush(stdout);
+	fflush(stdin);
 	return;
 }
 /*
@@ -496,26 +529,32 @@ void * printCommandStruct(struct command * Command)
 void killProcessGroup()
 {
 	pid_t myPgid;
+	struct sigaction save_sigact, tmp_sigact;
 	int result;
 
+	// Kill all children in this process group
 	if ( (myPgid = getpgid(0)) < 0 )
 		perror("getpgid");
 	
-  if (signal(SIGTERM, SIG_IGN) == SIG_ERR)
-		perror("SIG_IGN");
+	// ignore signal in parent - since the parent is also in the process group
+	if ( sigaction (SIGTERM, NULL, &save_sigact) < 0)
+	{
+		; // sigaction fail	TODO: What do we do about that :)
+	}
+	else 
+	{
+		// Ignore sigterm in the parent
+		memcpy ( &tmp_sigact, &save_sigact, sizeof(save_sigact));
+		tmp_sigact.sa_handler = SIG_IGN;
+		sigaction(SIGTERM, &tmp_sigact, NULL);
+	}
 		     
-	if (killpg(getpgrp(), SIGUSR1) == -1)
+	if (killpg(getpgrp(), SIGTERM) == -1)
 		perror("killpg");
 
-  if (signal(SIGTERM, SIG_DFL) == SIG_ERR)
-		perror("SIG_DFL");
+	// restore signal handling in parent
+	sigaction(SIGTERM, &save_sigact, NULL);
 
-	//TODO: kill all children
-	// getpgid
-	// ignore signal
-	// killpg
-	// restore signal
-	// exit
 }
 
 /*
