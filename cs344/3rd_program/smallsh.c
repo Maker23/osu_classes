@@ -4,6 +4,7 @@
  *                    CS344_400 Program 3
  *                       May 23, 2016
  *
+ * Compile on eos-class with "gcc -o smallsh smallsh.c"
  *
  * I am indebted to: 
  * 	= Stephen Brennan's tutorial "Write a Shell in C", 
@@ -11,17 +12,15 @@
  *	= Various gnu.org docs on subjects like process completion (for waitpid),
  *	  duplicating descriptors, and signal handling
  *  = The Linux man pages
- *  = cplusplus.com: the best C/C++ documentation anywhere
+ *  = cplusplus.com: the best C/C++ documentation online or off
  *
  */
 
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h> // For random numbers
+#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -31,7 +30,6 @@
 #define CHILD_DEBUG 0
 #define PARSING_DEBUG 0
 #define GENERAL_DEBUG 0
-
 // #define PROMPT "smallsh> "
 #define PROMPT ":"
 
@@ -43,18 +41,17 @@
 #define INPUT 5
 #define OUTPUT 7
 
-
 struct command 
 {
 	char commandline[MAX_CMD_LENGTH]; // A string
-	char * args[MAX_ARG_COUNT]; // An array of pointers
+	char * args[MAX_ARG_COUNT]; 	// An array of pointers
 	char * input_filename;
 	char * output_filename;
 	int argcount;
-	int	redirect_output;// boolean
-	int	redirect_input;	// boolean
-	int	background;			// boolean
-	int	csignal;
+	int	redirect_output;// used as a boolean
+	int	redirect_input;	// used as a boolean
+	int	background;			// used as a boolean
+	int	csignal;	// preserve the exit signal, if any
 };
 
 // Function prototypes
@@ -64,25 +61,37 @@ void catchInterruptParent(int sig);
 void killProcessGroup();
 void checkForBackgroundChildren();
 struct command * parseCommandLine ( char * inputLine);
-int runCommand (struct command * Command, char * PATH);
+int runCommand (struct command * Command);
 int returnChildStatus ( struct command * Command, int status );
 
-// Global signal struct
+// Global signal handling struct
 struct sigaction p_sigact;
 
+/* **********************************************************
+ *
+ * The main() function simply sets up signal handling for the
+ * parent and then enters a command-parsing loop
+ *
+ ********************************************************* */
 main(int argc, char ** argv)
 {
-	// Trap SIGINT for handling
+	/* Trap SIGINT for handling */
 	p_sigact.sa_flags = 0;
 	sigemptyset(&p_sigact.sa_mask);
 	p_sigact.sa_handler = catchInterruptParent;
 	sigaction(SIGINT, &p_sigact, NULL);
 
-
 	/* Loop indefinitely */
 	innerLoop();
 }
 
+/* **********************************************************
+ *
+ * innerLoop(): Loop indefinitely, printing the prompt and 
+ * collecting user-input command lines. Return when the builtin
+ * command "exit" is issued.
+ *
+ ********************************************************* */
 void innerLoop()
 {
 	char input[MAX_CMD_LENGTH];
@@ -90,61 +99,62 @@ void innerLoop()
 	int status = 0;
 	int csignal = 0;
 
-	char * PATH = getenv("PATH"); // in the real world this code would be elsewhere
-	LOGIC_DEBUG && printf ("DBG: PATH is %s\n", PATH);
-
 	while (1)
 	{
-		// If any children have exited, print out their info
+		// At the beginning of the loop, before printing the prompt,
+		// check to see if any background children have terminated
 		checkForBackgroundChildren();
 
-		memset (input, 0, sizeof input); // zero the keyboard input buffer
+		memset (input, 0, sizeof input); // wipe the keyboard input buffer
 
-		// Print the prompt and get the user's command-line input
+		// Print the prompt and get the user's input
 		fprintf(stdout, "%s", PROMPT);
 		fgets(input, sizeof input, stdin);
 		fflush(stdout); fflush(stdin);
-		// If input is max length the last position should be null regardless
+
+		// Make sure the last position is null in case input is max length
 		input[sizeof(input)] = '\0';
-		// Remove trailing newline(s)
+		// Remove trailing newline(s) from input
 		while (input[strlen(input)-1] == '\n')
 			input[strlen(input)-1] = '\0';
 
-		PARSING_DEBUG && printf ("DBG: received |%s|\n", input);
+		PARSING_DEBUG && printf ("DBG: received |%s|\n", input); fflush(stdout);
 
-		/* Save a little time by checking before parsing. */
+		// Save a little time by checking simple cases before parsing. 
 		if ( strcmp (input, "" ) == 0 )
 			continue;
 		if ( strcmp (input, "exit" ) == 0 )
 		{
-			// Kill all children and exit
+			// Exit? Kill all children and return to main
 			killProcessGroup();
 			return;
 		}
 			
-		/* Now parse the command and look for special cases */
+		// Parse the user input into our Command struct, and look for special cases 
 		Command = parseCommandLine(input);
-		LOGIC_DEBUG && printf("DBG: *Command = %p\n", Command);
-		fflush(stdout); fflush(stdin);
 
+		LOGIC_DEBUG && printf("DBG: *Command = %p\n", Command); fflush(stdout);
 		if (Command == NULL ) {
 			status=-1;
-			continue;		// failed to parse
+			continue;		// failed to parse; return to loop beginning
 		}
 		if ( strcmp(Command->args[0], "exit") == 0 )
 		{
-			// Kill all children and exit
+			// exit builtin
+			// Exit? Kill all children and return to main
 			killProcessGroup();
 			return;	
 		}
 		if ( strncmp (Command->args[0], "#", 1 ) == 0 )
 		{
+			// comment builtin
 			// This is a comment, ignore the rest of the line
 			status=0;	
 	 		continue; 
 		}
 		if ( strcmp(Command->args[0], "status") == 0 )
 		{
+			// status builtin
 			// Print the status (or signal) of the previous command
 			if ( csignal ) 
 			{
@@ -158,23 +168,32 @@ void innerLoop()
 			continue;
 		}
 
-		/* No special cases found - run the user's command */
-		status = runCommand(Command, PATH);
+		// No special cases found - run the user's command 
+		status = runCommand(Command);
 		csignal = Command->csignal; // save any signal before freeing the struct
 
-		LOGIC_DEBUG && printf("DBG: status = %d\n", status);
+		LOGIC_DEBUG && printf("DBG: status = %d\n", status); 
 	
-		// Free malloc'd memory and loop again
+		// Free malloc'd struct memory and loop again
 		free (Command);
 	}
 }
 
-int runCommand(struct command * Command, char * PATH)
+/* **********************************************************
+ *
+ * runCommand(): Take a filled command struct and execute it.
+ *
+ * This function is composed of a set of nested if/else tests;
+ * each case should match only one rightmost test, but there
+ * is only one return() statement at the function end.
+ *
+ ********************************************************* */
+int runCommand(struct command * Command)
 {
 	int i;
 	int status=0;
 	pid_t pid, w_pid;
-	char buf[PATH_MAX];
+	char cwdbuf[PATH_MAX];
 	char *cptr;
 
 	LOGIC_DEBUG && printf ("DBG: Starting runCommand\n");
@@ -185,11 +204,9 @@ int runCommand(struct command * Command, char * PATH)
 	 *
 	 * 	cd		Change directory
 	 * 	pwd		Print Working Directory
-	 *
 	 */
 	if ( strcmp(Command->args[0], "cd") == 0 )
 	{
-		// CD code here
 		if (Command->argcount < 2 )
 		{
 			char * HOME = getenv("HOME");
@@ -216,7 +233,7 @@ int runCommand(struct command * Command, char * PATH)
 	}
 	else if ( strcmp(Command->args[0], "pwd") == 0 )
 	{
-		cptr = getcwd(buf, sizeof(buf));
+		cptr = getcwd(cwdbuf, sizeof(cwdbuf));
 		if (cptr==NULL)
 		{
 			status=-1;
@@ -224,14 +241,17 @@ int runCommand(struct command * Command, char * PATH)
 		}
 		else
 		{
-			printf("%s\n", buf);
+			printf("%s\n", cwdbuf);
 			status=0;
 		}
 	}
 	else
 	{
-		
-		// Not a built-in command; fork a child and exec the command
+		/* 
+		 * Command is not a built-in. Fork here. 
+		 * Parent waits for the child unless it's backgrounded.
+		 * Child calls runChild() to exec the command.
+		 */
 		pid = fork();
 		if ( pid < 0 )
 		{
@@ -243,14 +263,14 @@ int runCommand(struct command * Command, char * PATH)
 			// Child process
 			status = runChild(Command);
 			CHILD_DEBUG && printf ("Child exiting with status %d\n", status);
-			exit(status);
+			exit(status); // This line is never reached, because exec
 		}
 		else 
 		{
 			// Parent process
-			CHILD_DEBUG &&	printf ("DBG: Parent is waiting for process %d\n", pid );
 			if ( ! Command->background ) 
 			{
+				CHILD_DEBUG &&	printf ("DBG: Parent is waiting for process %d\n", pid );
 				// Run in the foreground; parent waits for child to exit
 				do {
 					w_pid = waitpid(pid, &status, WUNTRACED);
@@ -269,6 +289,14 @@ int runCommand(struct command * Command, char * PATH)
 	return(status);
 }
 
+/* **********************************************************
+ *
+ * checkForBackgroundChildren()
+ * Use waitpid() to check the process group for any children
+ * that have terminated (normally or with a signal)
+ * If found, print the child pid and exit condition
+ *
+ ********************************************************* */
 void checkForBackgroundChildren()
 {
 	pid_t w_pid;
@@ -284,6 +312,14 @@ void checkForBackgroundChildren()
 	}
 }
 
+/* **********************************************************
+ *
+ * returnChildStatus()
+ * Print the child's exit condition, slightly different depending
+ * on whether it had a normal exit() or whether it was killed
+ * by a signal
+ *
+ ********************************************************* */
 int returnChildStatus ( struct command * Command, int status )
 {
 	if (WIFEXITED(status)) 
@@ -302,12 +338,23 @@ int returnChildStatus ( struct command * Command, int status )
 	return(status);
 }
 
+/* **********************************************************
+ *
+ * runChild()
+ * This is where the child exec's the new command.
+ * First it redirects stdin/stdout as needed.
+ *
+ * The return status here is critical. It should be:
+ *    -1, if the redirect or exec fail
+ *	  or  the return value of the execvp() call
+ *
+ ********************************************************* */
 int runChild(struct command * Command)
 {
 	int status;
 	int fdin, fdout;
 	
-	// permission mode for files we create
+	// permission mode for files we create from stdout
 	mode_t mode = ( S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH );
 
 	// noisy debugging info
@@ -335,8 +382,10 @@ int runChild(struct command * Command)
 		}
 		dup2(fdin, STDIN_FILENO);
 	}
+
  	if ( Command->redirect_input && (Command->input_filename != NULL))
 	{
+		// Redirect stdin from a file
 		if ( ( fdin = open(Command->input_filename, O_RDONLY, mode)) < 0 )
 		{
 			perror(Command->input_filename);
@@ -346,6 +395,7 @@ int runChild(struct command * Command)
 	}
  	if ( Command->redirect_output && (Command->output_filename != NULL))
 	{
+		// Redirect stdout to a file
 		if ( ( fdout = open (Command->output_filename, O_WRONLY|O_CREAT|O_TRUNC, mode)) < 0 )
 		{
 			perror(Command->output_filename);
@@ -363,6 +413,15 @@ int runChild(struct command * Command)
 	return(status);
 }
 
+/* **********************************************************
+ *
+ * parseCommandLine()
+ * Take the user's command line input and return a pointer
+ * to a filled command struct - or NULL if there's a parsing error
+ * Note that malloc is used to create the struct, which will
+ * be freed elsewhere
+ *
+ ********************************************************* */
 struct command * parseCommandLine ( char * inputLine)
 {
 	struct command * thisCommand;
@@ -372,9 +431,11 @@ struct command * parseCommandLine ( char * inputLine)
 	int has_command = FALSE;  // boolean
 	int looking_for_filename = FALSE; // booleans
 
-	wordcount=0;	// the number of tokens or 'words' in the command line
-	argcount=0;		// the number of command arguments
+	wordcount=0;	// the number of tokens or 'words' in the user's input
+	argcount=0;		// the number of command arguments we end up with
 
+	// malloc a new command struct, and permanently copy the
+	// user input into it
 	thisCommand = (struct command *) malloc (sizeof (struct command));
 	if (thisCommand == NULL) 
 		return(NULL); // malloc failed
@@ -447,13 +508,13 @@ struct command * parseCommandLine ( char * inputLine)
 			else if ( ! has_command )
 			{
 				// This is a no-op
-				return;
+				return(NULL);
 			}
 			else
 			{
 				// Stop parsing and throw the rest of the input away.
 				thisCommand->background = TRUE;
-				return;
+				return(thisCommand);
 			}
 		}
 		// It's a plain word - either a command or an argument
@@ -505,20 +566,28 @@ struct command * parseCommandLine ( char * inputLine)
 
 }
 
+/* **********************************************************
+ *
+ * catchInterruptParent()
+ * This does pretty much nothing, and is functionally equivalent 
+ * to ignoring SIGINT
+ *
+ ********************************************************* */
 void catchInterruptParent(int sig)
 {
 	LOGIC_DEBUG && printf("Parent caught signal %d\n", sig);
-	// Parent process ignores the interrupt
+	// Parent process doesn't do anything with the interrupt
 	// We print a newline here to keep the prompt clean
 	printf("\n");
 	fflush(stdout);
-	fflush(stdin);
 	return;
 }
-/*
- * This is solely for debugging
+
+/* **********************************************************
  *
- */
+ * printCommandStruct() - solely for debugging
+ *
+ ********************************************************* */
 void * printCommandStruct(struct command * Command)
 {
 	int i;
@@ -536,33 +605,41 @@ void * printCommandStruct(struct command * Command)
 		printf ("background = TRUE\n");
 }
 
+/* **********************************************************
+ *
+ * killProcessGroup()
+ * Kill all child processes before the parent exits. 
+ * First tells the parent to ignore SIGTERM, then issues SIGTERM
+ * to the entire process group
+ *
+ ********************************************************* */
 void killProcessGroup()
 {
 	pid_t myPgid;
 	struct sigaction save_sigact, tmp_sigact;
 	int result;
 
-	// Kill all children in this process group
 	if ( (myPgid = getpgid(0)) < 0 )
 		perror("getpgid");
 	
-	// ignore signal in parent - since the parent is also in the process group
+	// preserve the parent's existing signal state
 	if ( sigaction (SIGTERM, NULL, &save_sigact) < 0)
 	{
 		; // sigaction fail. What do we do about that :) Ignore I guess
 	}
 	else 
 	{
-		// Ignore sigterm in the parent
+		// Now ignore signal in parent - since the parent is also in the process group
 		memcpy ( &tmp_sigact, &save_sigact, sizeof(save_sigact));
 		tmp_sigact.sa_handler = SIG_IGN;
 		sigaction(SIGTERM, &tmp_sigact, NULL);
 	}
 		     
+	// signal the process group
 	if (killpg(getpgrp(), SIGTERM) == -1)
 		perror("killpg");
 
-	// restore signal handling in parent
+	// restore the parent's signal state
 	sigaction(SIGTERM, &save_sigact, NULL);
 
 }
