@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h> // Yup, there's two of 'em
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -48,23 +49,24 @@ int main ( int argc, char ** argv )
 	int sockListen, sockConnect;
 	int clientDataSocket;
 	int sockSendFlags = 0;
+	int errcount = 0;
 	ssize_t recv_bytes, send_bytes;
 
 	struct addrinfo hints, *clientInfo;
-	struct sockaddr_storage client_info;
+	struct sockaddr_in client_info; // TODO: disambiguate the clientInfos
 	socklen_t sin_size;
 
 	size_t found;
 	char tmpstr[2048];
 	char * cstr;
 	char * PortStr;
-	char Get[] = "GET ";
-	char GetBinary[] = "GETBIN ";
-	char Hello[] = "HELO";
-	char List[] = "LIST";
-	char Changedir[] = "CD ";
-	char Domainname[] = ".engr.oregonstate.edu";
+	char GetCmd[] = "GET ";
+	char GetBinaryCmd[] = "GETBIN ";
+	char HelloCmd[] = "HELO";
+	char ListCmd[] = "LIST";
+	char ChdirCmd[] = "CD ";
 	char clientIP[255];
+	char clientHandle[255];
 	char clientHostname[255];
 	unsigned short  clientDataPort;
 	char * Hostname;
@@ -72,6 +74,9 @@ int main ( int argc, char ** argv )
 	char recvData[1024];
 	char sendData[1024];
 	char errorString[1024];
+
+	char officialClientHostname[NI_MAXHOST], clientService[NI_MAXSERV];
+	int s;
 
 	if ( argc < 2 ) {
 		fprintf(stderr, "Usage : %s <portnumber>\n", argv[0]);
@@ -81,7 +86,7 @@ int main ( int argc, char ** argv )
 	PortStr = argv[1];
 	gethostname(tmpstr, sizeof tmpstr - 1);
 	Hostname = tmpstr;
-	DEBUG && printf("hostname= %s, domainname = %s\n", Hostname, Domainname);
+	DEBUG && printf("hostname= %s\n", Hostname);
 	
 	// Create the socket
 	memset (&hints, 0, sizeof(hints));
@@ -102,12 +107,27 @@ int main ( int argc, char ** argv )
 			if (sockConnect == -1)
 			{
 				fprintf(stderr, "accept: %s\n", strerror(errno));
+				if ( errcount > 25 )
+					exit(1);
+				errcount++;
 				continue;
 			}
 			// clientDataSocket = -1; // Fail if not initialized
 
-			//inet_ntop(client_info.ss_family, get_in_addr((struct sockaddr *) &client_info), clientIP, sizeof(clientIP));
-			//fprintf (stdout, "Client has connected from %s.\n", clientIP);
+			//inet_ntop(client_info.sin_family, &(client_info.sin_addr), clientIP, sizeof(clientIP));
+			if (( getnameinfo((struct sockaddr *) &client_info, sizeof(struct sockaddr_in), 
+					officialClientHostname, NI_MAXHOST, clientService, NI_MAXSERV, NI_NUMERICSERV)) == 0)
+			{
+				char * cptr;
+				if ( (cptr=strchr(officialClientHostname, '.')) != NULL )
+					*cptr = '\0';
+				fprintf (stdout, "Client connection from %s.\n", officialClientHostname);
+			}
+			else
+			{
+				fprintf (stdout, "Client connection from %s.\n", clientIP);
+			}
+			
 
 			while ( 1 )
 			{
@@ -133,7 +153,8 @@ int main ( int argc, char ** argv )
 				stripTrailingNewline(recvData);
 				DEBUG && fprintf(stdout, "DBG received message |%s| from client\n", recvData);
 
-				if ( (strncmp(recvData, Hello, strlen(Hello))) == 0 )
+ 				// TODO: OMG, move this all into parse received buffer! 
+				if ( (strncasecmp(recvData, HelloCmd, strlen(HelloCmd))) == 0 )
 				{
 					// get client information from HELO command
 					// TODO: error checking
@@ -166,30 +187,30 @@ int main ( int argc, char ** argv )
 						clientDataSocket = sockConnect;
 					}
 				}
-				else if ( (strncmp(recvData, Get,strlen(Get))) == 0 )
+				else if ( (strncasecmp(recvData, GetCmd,strlen(GetCmd))) == 0 )
 				{
 					DEBUG && fprintf(stdout, "DBG received Get args |%s|\n", recvData);
-					strcpy(commandArg, (char * ) (recvData + strlen(Get)));
+					strcpy(commandArg, (char * ) (recvData + strlen(GetCmd)));
 					DEBUG && fprintf(stdout, "commandArg is |%s|\n", commandArg);
 					transferFile(commandArg, clientDataSocket, TEXT);
 				}
-				else if ( (strncmp(recvData, GetBinary,strlen(GetBinary))) == 0 )
+				else if ( (strncasecmp(recvData, GetBinaryCmd,strlen(GetBinaryCmd))) == 0 )
 				{
-					DEBUG && fprintf(stdout, "DBG received GetBinary args |%s|\n", recvData);
-					strcpy(commandArg, (char * ) (recvData + strlen(GetBinary)));
+					DEBUG && fprintf(stdout, "DBG received GetBinaryCmd args |%s|\n", recvData);
+					strcpy(commandArg, (char * ) (recvData + strlen(GetBinaryCmd)));
 					DEBUG && fprintf(stdout, "commandArg is |%s|\n", commandArg);
 					transferFile(commandArg, clientDataSocket, BINARY);
 				}
-				else if ( (strncmp(recvData, List, strlen(List))) == 0 )
+				else if ( (strncasecmp(recvData, ListCmd, strlen(ListCmd))) == 0 )
 				{
 					DEBUG && fprintf(stdout, "DBG received List |%s|\n", recvData);
 					listDirectory(clientDataSocket);
 				}
-				else if ( (strncmp(recvData, Changedir,strlen(Changedir))) == 0 )
+				else if ( (strncasecmp(recvData, ChdirCmd,strlen(ChdirCmd))) == 0 )
 				{
 					/* TODO chdir here */
 					DEBUG && fprintf(stdout, "DBG received chdir command |%s|\n", recvData);
-					strcpy(commandArg, (char * ) (recvData + strlen(Changedir)));
+					strcpy(commandArg, (char * ) (recvData + strlen(ChdirCmd)));
 					DEBUG && fprintf(stdout, "commandArg is |%s|\n", commandArg);
 
 					if ( (status = chdir (commandArg)) < 0 )
@@ -207,8 +228,8 @@ int main ( int argc, char ** argv )
 						send (clientDataSocket, errorString, strlen(errorString), sockSendFlags);
 					}
 				}
-				else if ( (strncmp(recvData, Changedir,strlen(Changedir)-1)) == 0 || 
-				          (strncmp(recvData, Get,strlen(Get)-1)) == 0)
+				else if ( (strncasecmp(recvData, ChdirCmd,strlen(ChdirCmd)-1)) == 0 || 
+				          (strncasecmp(recvData, GetCmd,strlen(GetCmd)-1)) == 0)
 				{
 					// TODO: use errorstring
 					fprintf (stderr, "%s: missing argument\n", recvData);
@@ -424,7 +445,6 @@ char * shortToAscii( unsigned short num )
 	int remainder;
 	int i=0;
 
-	DEBUG && fprintf(stdout, "Entering intToAscii\n");
 	numString = malloc (sizeof (char) * 12);
 	memset (numString, 0, sizeof(numString));
 	memset (revString, 0, sizeof(revString));
@@ -439,7 +459,6 @@ char * shortToAscii( unsigned short num )
 	{
 		numString[i] = revString[strlen(revString)-(i+1)];
 	}
-	DEBUG && fprintf(stdout, "Exiting intToAscii\n");
 
 	return(numString);
 }
