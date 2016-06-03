@@ -38,9 +38,6 @@
 
 #include "otp_proto.h"
 
-#define DEBUG 1
-#define BUFSZ 1024
-
 enum States {
 	looking_for_command,
 	receiving_key,
@@ -50,18 +47,26 @@ enum States {
 };
 
 struct Connection {
-	int 	CSock; // File descriptor
-	enum 	States State;
-	char *Host_name;
-	char *CPort_name;
+	int 	CSock; 				// File descriptor
+	enum 	States State;	// state diagram
+	char *Host_name;		// remote hostname
+	char *CPort_name;		// local port name or number
 	char *dataBuf;
+	char *Key;
+	char *Text;
 	int  	expectMoreData;
 };
 
 void signalHandler (int param);
-int setUpServSocket(struct addrinfo *hints, char * PortString);
+int setUpListeningSocket(struct addrinfo *hints, char * PortString);
 int stripTrailingNewline(char * theString);
 void * logaroo (char *stringy);
+char * growstring (char *string, int newlength);
+char * encrypt(char * key, char * file);
+char * decrypt(char * key, char * cryptofile);
+int ModuloAdd (int f, int k);
+int ModuloSub (int f, int k);
+int sendDataInChunks ( int CSock, char * data );
 
 int main ( int argc, char ** argv )
 {
@@ -88,10 +93,14 @@ int main ( int argc, char ** argv )
 	if ( argc < 2 ) {
 		// This is the only argument validation we do. 
 		// If the argument isn't a valid port number or service name 
-		// then setUpServSocket will fail
+		// then setUpListeningSocket will fail
 		fprintf(stderr, "Usage : %s <portnumber>\n", argv[0]);
 		exit(1);
 	}
+
+	// TODO: set stdout to logfile ?
+	freopen("/dev/null", "r", stdin);
+	freopen("/dev/null", "w", stdout);
 	memset (&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
@@ -101,7 +110,7 @@ int main ( int argc, char ** argv )
 	 * Create the listening socket
 	 * **************************/
 	PortStr = argv[1];
-	if ( (ServerListenSocket = setUpServSocket(&hints,PortStr) ) < 0 )
+	if ( (ServerListenSocket = setUpListeningSocket(&hints,PortStr) ) < 0 )
 	{
 		exit(ServerListenSocket);
 	}
@@ -110,7 +119,6 @@ int main ( int argc, char ** argv )
 	sprintf(logString, "Server listening on %s port %s", serverHostname, PortStr);
 	logaroo(logString);
 
-	// TODO: Parent close stdin and set stdout to logfile
 
 	/* ********************************************************
 	 * Loop indefinitely waiting for connect() on the listening
@@ -135,7 +143,7 @@ int main ( int argc, char ** argv )
 			}
 			/* ************************************************************* */
 			sprintf(ChildPortStr, "%hu", ChildPortNum);
-			if ( (ChildListenSocket = setUpServSocket(&hints,ChildPortStr) ) < 0 )
+			while ( (ChildListenSocket = setUpListeningSocket(&hints,ChildPortStr) ) < 0 )
 			{
 				perror("ChildListenSocket"); //TODO: log this, but only if we're debugging
 				ChildPortNum++; // Try again until we find a free port
@@ -145,12 +153,30 @@ int main ( int argc, char ** argv )
 				
 				sprintf(ChildPortStr, "%hu", ChildPortNum);
 			}
+			// Get information about the client so we can print a useful log message 
+			// Use the name of the client if we can get it - otherwise the IP address
+			inet_ntop(client_sockaddr.sin_family, &(client_sockaddr.sin_addr), clientIP, sizeof(clientIP));
+			if (( getnameinfo((struct sockaddr *) &client_sockaddr, sizeof(struct sockaddr_in), 
+					officialClientHostname, NI_MAXHOST, clientService, NI_MAXSERV, NI_NUMERICSERV)) == 0)
+			{
+				char * cptr;
+				if ( (cptr=strchr(officialClientHostname, '.')) != NULL )
+					*cptr = '\0';
+				sprintf (logString, "Client connection from %s, assigned to port %hu", 
+					officialClientHostname, ChildPortNum);
+			}
+			else
+			{
+				sprintf (logString, "Client connection from %s assigned port %hu", 
+					clientIP, ChildPortNum);
+			}
+			logaroo(logString);
 
 			/* 
 			 * Now we have a listening child port. Send a Reconnect command
 			 * to the client. Close the client socket. Fork here.
 			 */
-			if (DEBUG) fprintf(stdout, "Client will reconnect on port %s (%d)\n", ChildPortStr, ChildPortNum);
+			if (DEBUG) fprintf(stderr, "Client will reconnect on port %s (%d)\n", ChildPortStr, ChildPortNum);
 			snprintf(sendData, BUFSZ, "%s %s\n", RECONNECT_CMD, ChildPortStr);
 			send(ServerDataSocket, sendData, strlen(sendData), 0);
 
@@ -192,25 +218,6 @@ int main ( int argc, char ** argv )
 				// Parent process
 				// Log connection; close sockets
 				
-
-				// Get information about the client so we can print a useful log message 
-				// Use the name of the client if we can get it - otherwise the IP address
-				inet_ntop(client_sockaddr.sin_family, &(client_sockaddr.sin_addr), clientIP, sizeof(clientIP));
-				if (( getnameinfo((struct sockaddr *) &client_sockaddr, sizeof(struct sockaddr_in), 
-						officialClientHostname, NI_MAXHOST, clientService, NI_MAXSERV, NI_NUMERICSERV)) == 0)
-				{
-					char * cptr;
-					if ( (cptr=strchr(officialClientHostname, '.')) != NULL )
-						*cptr = '\0';
-					sprintf (logString, "Client connection from %s, assigned to port ", 
-						officialClientHostname, ChildPortNum);
-				}
-				else
-				{
-					sprintf (logString, "Client connection from %s assigned port", 
-						clientIP, ChildPortNum);
-				}
-				logaroo(logString);
 				close(ChildListenSocket);
 				close(ServerDataSocket);
 			}
@@ -219,7 +226,7 @@ int main ( int argc, char ** argv )
 			 * listening wait loop.
 			 */
 
-			DEBUG && fprintf(stdout, "End of outer while (listen / accept)\n");
+			DEBUG && fprintf(stderr, "End of outer while (listen / accept)\n");
 		}
 
 	return 0;
@@ -236,10 +243,10 @@ int handleConnection(struct Connection * clientConnect)
 	char *cryptoFile;
 	char errorString[BUFSZ];
 
-	char *key;
-	char *file;
-	int keylen=256; 	// initial value
-	int filelen=4096; // initial value
+	char *key = NULL;
+	char *file = NULL;
+	char *munged_file = NULL;
+	int storlen=4096; 	// initial value
 
 	/* ********************************************************
 	* Loop indefinitely on the client socket, collecting commands
@@ -266,14 +273,14 @@ int handleConnection(struct Connection * clientConnect)
 			close(clientConnect->CSock);
 			return(1);
 		}
-		DEBUG && fprintf(stdout, "DBG received raw message |%s| from client\n", recvData);
+		DEBUG && fprintf(stderr, "DBG received raw message |%s| from client\n", recvData);
 
 		/* *******************************************************
 		 * Strip trailing newlines and CRs
 		 * Send resulting string to subroutine for parsing and execution
 		 * ******************************************************/
 		stripTrailingNewline(recvData);
-		DEBUG && fprintf(stdout, "DBG received message |%s| from client\n", recvData);
+		DEBUG && fprintf(stderr, "DBG received message |%s| from client\n", recvData);
 
 		// TODO: use fcntl to non-block the receive
 		retval = parseReceiveBuffer(clientConnect, &recvData, strlen(recvData));
@@ -292,31 +299,71 @@ int handleConnection(struct Connection * clientConnect)
 		{
 			if ( clientConnect->State == closing )
 			{
-				DEBUG && fprintf(stdout, "CLOSE command issued\n");
+				DEBUG && fprintf(stderr, "CLOSE command issued\n");
 				close(clientConnect->CSock);
 				return(0);
 			}
 			else if ( clientConnect->State == receiving_key )
 			{
-				// Append buffer to long key or key file
+				// Append buffer to key
+				if (key==NULL) {
+					key  = (char *) malloc (storlen * sizeof(char));
+					memset(key, 0, sizeof(key));
+				}
+				if ( (strlen(key) + strlen(clientConnect->dataBuf)) >= storlen ) {
+					storlen *= 2;
+					key = growstring(key, storlen);
+				}
+				strcat(key,clientConnect->dataBuf);
 			}
 			else if ( clientConnect->State == receiving_file )
 			{
-				// Append buffer to long file or file
+				// Append buffer to file
+				if (file == NULL)
+				{
+					file = (char *) malloc (storlen * sizeof(char));
+					memset(file, 0, sizeof(file));
+				}
+				if ( (strlen(file) + strlen(clientConnect->dataBuf)) >= storlen ) {
+					storlen *= 2;
+					file = growstring(file, storlen);
+				}
+				strcat(file,clientConnect->dataBuf);
 			}
+
 
 			if ( clientConnect->expectMoreData == 0)
 			{
-				// Or, respond with the file if that's a thing
-				snprintf(sendData, BUFSZ, "%s %s\n", OK_RESPONSE, clientConnect->CPort_name);
-				send(clientConnect->CSock, sendData, strlen(sendData), 0);
+				if ( key != NULL && file != NULL ) 
+				{
+					fprintf(stderr, "WHOOP! I'm ready to encrypt file \"%s\" with key \"%s\"\n",
+						file, key);
+					if ( FUNCTION == DECODE ) {
+						munged_file = decrypt(key, file);
+					}
+					else {
+						// Encoding is the default
+						munged_file = encrypt(key, file);
+					}
+					// Or, respond with the file if that's a thing
+					
+					snprintf(sendData, BUFSZ, "%s %d\n", DATA_RESPONSE, strlen(file));
+					send(clientConnect->CSock, sendData, strlen(sendData), 0);
+					// TODO: We need a real sending loop
+					sendDataInChunks(clientConnect->CSock, munged_file);
+					//snprintf(sendData, BUFSZ, "%s\n", munged_file);
+				}
+				else
+				{
+					snprintf(sendData, BUFSZ, "%s %s\n", OK_RESPONSE, clientConnect->CPort_name);
+					send(clientConnect->CSock, sendData, strlen(sendData), 0);
+				}
 			}
 		}
 
-		DEBUG && fprintf(stdout, "End of inner while (receive data)\n");
+		DEBUG && fprintf(stderr, "End of inner while (receive data)\n");
 		memset(errorString, 0, sizeof(errorString)); // TODO we're not really using this
 		fflush(stderr);
-		fflush(stdout);
 	}
 	return(0);
 }
@@ -344,28 +391,35 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 	int state;
  	char command[4];
 
+	char *key = NULL;
+	char *file = NULL;
+	char *munged_file = NULL;
+	int storlen=4096; 	// initial value
+
 	// Defined by the protocol
 	char KeyCmd[] = KEY_CMD;
 	char FileCmd[] = FILE_CMD;
 	char CloseCmd[] = CLOSE_CMD;
-	//char KeyCmd[] = "KEY";
-	//char FileCmd[] = "FIL";
-	//char CloseCmd[] = "CLO";
 
 	/* ******************************************************* */
 
 	DEBUG &&  fprintf(stderr, "DBG Entering parseReceiveBuffer\n");
-	DEBUG && fprintf(stdout, "DBG received on socket |%s|, recvBytes=%d\n", recvData, recvBytes);
+	DEBUG && fprintf(stderr, "DBG received on socket |%s|, recvBytes=%d\n", recvData, recvBytes);
 
+	/*
+	 * State: Adding more bytes to Key or Text
+	 * ******************************************************* */
 	if ( clientConnect->expectMoreData > 0 )
 	{
 		// It's just data; don't change the state.
-		DEBUG && fprintf(stdout, "Getting more data: start: %d (state=%d)\n", clientConnect->expectMoreData, clientConnect->State);
-		for (ccount = 0; ccount < recvBytes; ccount++)
+		DEBUG && fprintf(stderr, "Getting more data: start: %d (state=%d)\n", 
+			clientConnect->expectMoreData, clientConnect->State);
+
+		for (ccount = 0; (ccount < recvBytes && ccount <= clientConnect->expectMoreData); ccount++)
 		{
-			if (ccount > 1023) 
+			if (ccount > sizeof(clientConnect->dataBuf)) 
 			{
-				DEBUG && fprintf (stdout, "Exceeded sizeof buffer %d\n", sizeof(clientConnect->dataBuf));
+				DEBUG && fprintf (stderr, "Exceeded sizeof buffer %d\n", sizeof(clientConnect->dataBuf));
 				break;
 			}
 			clientConnect->dataBuf[ccount] = recvData[ccount];
@@ -378,68 +432,88 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 		{
 			clientConnect->expectMoreData -= strlen(clientConnect->dataBuf);
 		}
-		DEBUG && fprintf(stdout, "Getting more data:   end: %d (state=%d)\n", clientConnect->expectMoreData, clientConnect->State);
-		DEBUG && fprintf(stdout, "More data string is |%s|\n", clientConnect->dataBuf);
-		return(0);
-	}
-
-  /* Looking for something other than data - shoudl be a command */
-
-	memset (command, 0, sizeof(command));
-	sscanf(recvData, "%3s", command);
-
-  if ((strcmp(command,"") == 0) || ( recvBytes < 3 )) {
-
-		sprintf(logString, "DBG unrecognized command |%s| from %s", command, clientConnect->Host_name);
-		DEBUG && fprintf(stdout, "%s\n", logString);
+		DEBUG && fprintf(stderr, "Getting more data:   end: %d (state=%d)\n", clientConnect->expectMoreData, clientConnect->State);
+		DEBUG && fprintf(stderr, "More data string is |%s|\n", clientConnect->dataBuf);
+		sprintf(logString, "%s:%s Received %d additional bytes", 
+			clientConnect->Host_name, clientConnect->CPort_name, strlen(clientConnect->dataBuf));
 		logaroo(logString);
-		return(1);
+		return(0); /*TODO: don't return until recvData is NULL */
 	}
+	else
+	{
+		/*
+		 * State: Looking for something other than data bytes - should
+		 *        be a protocol command (KEY, FIL, etc)
+		 * ******************************************************* */
+		/*
+		 * TODO: If we're not looking for data, consume whitespace.
+		 */
+		//while (
 
-	if ( (strncasecmp(command, CloseCmd, strlen(CloseCmd))) == 0 )
-	{
-		clientConnect->State=closing;
-		return(0);
-	}
-	else if ( (strncasecmp(command, KeyCmd,  strlen(KeyCmd)))  == 0 
-	        ||(strncasecmp(command, FileCmd, strlen(FileCmd))) == 0 )
-	{
-		sscanf(recvData, "%*3s%*[ ]%d%n", &dataLength, &scancount); // TODO: check for errors
-		scancount++;
-		DEBUG && fprintf(stdout, "DBG recvBytes = %d, scancount = %d\n", recvBytes, scancount);
-		for (ccount = scancount; ccount < recvBytes; ccount++)
-		{
-			bufLength = ccount - scancount; // Starts at 0
-			clientConnect->dataBuf[bufLength] = recvData[ccount];
-		}
-		DEBUG && fprintf(stdout, "DBG length = %d, data = |%s|\n", dataLength, clientConnect->dataBuf);
-		DEBUG && fprintf(stdout, "DBG got %d bytes\n", strlen(clientConnect->dataBuf));
-		if ( dataLength == 0 )
-		{
+		memset (command, 0, sizeof(command));
+		sscanf(recvData, "%3s", command);
+
+
+		if ((strcmp(command,"") == 0) || ( recvBytes < 3 )) {
+
+			sprintf(logString, "%s:%s Unrecognized command |%s|", clientConnect->Host_name, clientConnect->CPort_name,command);
+			logaroo(logString);
 			return(1);
 		}
 
-		if ( strlen(clientConnect->dataBuf) < dataLength )
+		if ( (strncasecmp(command, CloseCmd, strlen(CloseCmd))) == 0 )
 		{
-			// More data is coming
-			clientConnect->expectMoreData = dataLength - strlen(clientConnect->dataBuf);
+			sprintf(logString, "%s:%s Closing connection", clientConnect->Host_name, clientConnect->CPort_name);
+			logaroo(logString);
+			clientConnect->State=closing;
+			return(0);
+		}
+		else if ( (strncasecmp(command, KeyCmd,  strlen(KeyCmd)))  == 0 
+						||(strncasecmp(command, FileCmd, strlen(FileCmd))) == 0 )
+		{
+			sscanf(recvData, "%*3s%*[ ]%d%n", &dataLength, &scancount); // TODO: check for errors
+			scancount++;
+			DEBUG && fprintf(stderr, "DBG recvBytes = %d, scancount = %d\n", recvBytes, scancount);
+			for (ccount = scancount; ccount < recvBytes; ccount++)
+			{
+				bufLength = ccount - scancount; // Starts at 0
+				clientConnect->dataBuf[bufLength] = recvData[ccount];
+			}
+			DEBUG && fprintf(stderr, "DBG length = %d, data = |%s|\n", dataLength, clientConnect->dataBuf);
+			DEBUG && fprintf(stderr, "DBG got %d bytes\n", strlen(clientConnect->dataBuf));
+			if ( dataLength == 0 )
+			{
+				return(1);
+			}
+
+			if ( strlen(clientConnect->dataBuf) < dataLength )
+			{
+				// More data is coming
+				clientConnect->expectMoreData = dataLength - strlen(clientConnect->dataBuf);
+			}
 			if ( (strncasecmp(command, KeyCmd,  strlen(KeyCmd)))  == 0 )
 			{
+				sprintf(logString, "%s:%s Sending %d byte key", clientConnect->Host_name, clientConnect->CPort_name, dataLength);
+				logaroo(logString);
 				clientConnect->State=receiving_key;
 			}
 			else		
 			{
+				sprintf(logString, "%s:%s Sending %d byte file", clientConnect->Host_name, clientConnect->CPort_name, dataLength);
+				logaroo(logString);
 				clientConnect->State=receiving_file;
 			}
+			sprintf(logString, "%s:%s Received %d bytes", 
+				clientConnect->Host_name, clientConnect->CPort_name, strlen(clientConnect->dataBuf));
+			logaroo(logString);
 		}
-	}
-	else
-	{
-		clientConnect->State=looking_for_command;
-		sprintf(logString, "DBG unrecognized command |%s| from %s", command, clientConnect->Host_name);
-		DEBUG && fprintf(stdout, "%s\n", logString);
-		logaroo(logString);
-		return(1); // TODO: should this be fatal?
+		else
+		{
+			clientConnect->State=looking_for_command;
+			sprintf(logString, "%s:%s Unrecognized command |%s|", clientConnect->Host_name, clientConnect->CPort_name, command);
+			logaroo(logString);
+			return(1); // TODO: should this be fatal?
+		}
 	}
 
 	return(0);
@@ -447,7 +521,7 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 	DEBUG && 	fprintf(stderr, "Exiting parseReceiveBuffer\n");
 }
 
-int setUpServSocket(struct addrinfo *hints, char * PortString)
+int setUpListeningSocket(struct addrinfo *hints, char * PortString)
 {
 	struct addrinfo *servInfo, *p;
 	int savError;
@@ -456,7 +530,7 @@ int setUpServSocket(struct addrinfo *hints, char * PortString)
 	int sockListen;
 	struct servent * sstatus;
  
-	DEBUG && fprintf(stdout, "Entering setUpServSocket\n");
+	DEBUG && fprintf(stderr, "Entering setUpListeningSocket\n");
 	
  	
 	if ( (status = getaddrinfo(NULL, PortString, hints, &servInfo)) !=0 ) 
@@ -494,7 +568,7 @@ int setUpServSocket(struct addrinfo *hints, char * PortString)
 		return(-1);
 	}
 	
-	DEBUG && fprintf(stdout, "Exiting setUpServSocket\n");
+	DEBUG && fprintf(stderr, "Exiting setUpListeningSocket\n");
 
 	return(sockListen);
 }
@@ -516,6 +590,18 @@ int stripTrailingNewline(char * theString)
 	return(0);
 }
 
+int isWhitespace(char theChar)
+{
+	if ( (theChar == ' ')
+		 ||(theChar == '\n')
+		 ||(theChar == '\r')
+		 ||(theChar == '\f')
+		 ||(theChar == '\t'))
+		return (1);
+
+	return(0);
+}
+
 void * logaroo (char *stringy)
 {
 	FILE * fp;
@@ -532,7 +618,129 @@ void * logaroo (char *stringy)
 	if ( fp == NULL)
 		perror("program_log");
 
-	if (fp) fprintf(fp, "%s: %s\n", timestring, stringy);
+	if (fp) 		fprintf(fp, "%s: %s\n", timestring, stringy);
+	if (DEBUG || LOGTOSCREEN) 	fprintf(stderr, "LOG: %s\n", stringy);
 
 	fclose(fp);
 }
+
+char * growstring (char *string, int newlength)
+{
+	char * newstring;
+
+	newstring = (char *) malloc (newlength * sizeof(char));
+	memset(newstring, 0, sizeof(newstring));
+	strncpy (newstring,string,newlength-1);
+	free(string);
+	return(newstring);
+}
+
+char * encrypt(char * key, char * file)
+{
+	char F,K,N;
+	int f,k,n,x;
+
+	int i;
+
+	int *keynum = malloc (sizeof(int) * strlen(key));
+	char * newfile = malloc(sizeof(char) * strlen(file));
+
+	memset(newfile, 0, sizeof(newfile));
+
+  for ( i=0; i< strlen(key); i++ )
+	{
+		K = toupper(key[i]);
+
+		if ( K == ' ') k = 26;
+		else k = (int) K - 65;
+
+		keynum[i] = k;
+
+	}
+	
+  for ( i=0; i< strlen(file); i++ )
+	{
+		F = toupper(file[i]);
+		if ( F == ' ')  f = 26;
+		else f = (int) F - 65;
+
+		x = ModuloAdd(f,keynum[i]);
+		if(DEBUG) printf("%c+%c = %d + %d = %d\n", F, K, f, keynum[i], x);
+
+		if ( x==26)
+			newfile[i] = ' ';
+	  else
+			newfile[i] = (char)(x+65);
+	}
+
+	free(keynum);
+	return(newfile);
+}
+
+
+char * decrypt(char * key, char * file)
+{
+	char F,K,N;
+	int f,k,n,x;
+
+	int i;
+
+	int *keynum = malloc (sizeof(int) * strlen(key));
+	char * decrypt = malloc(sizeof(char) * strlen(file));
+	memset(decrypt, 0, sizeof(decrypt));
+
+  for ( i=0; i< strlen(key); i++ )
+	{
+		K = toupper(key[i]);
+
+		if ( K == ' ') k = 26;
+		else k = (int) K - 65;
+
+		keynum[i] = k;
+
+	}
+
+  for ( i=0; i< strlen(file); i++ )
+	{
+		N = toupper(file[i]);
+		if ( N == ' ')  n = 26;
+		else n = (int) N - 65;
+
+		x = ModuloSub(n,keynum[i]);
+		if(DEBUG) printf("%c+%c = %d + %d = %d\n", F, K, f, keynum[i], x);
+		if ( x==26)
+			decrypt[i] = ' ';
+	  else
+			decrypt[i] = (char)(x+65);
+	}
+
+	return(decrypt);
+}
+
+int ModuloAdd (int f, int k)
+{
+	int tmp;
+	tmp = f + k;
+	if (tmp > KEYSETLEN+1 )
+		tmp-=KEYSETLEN;
+	return(tmp);
+}
+
+int ModuloSub (int f, int k)
+{
+	int tmp;
+	tmp = f - k;
+	if (tmp < 0 )
+		tmp+=KEYSETLEN;
+	return(tmp);
+}
+
+/*
+ * TODO:
+ *  If key or file are longer than expected, warn, truncate, and continue
+ * 	Timeout child listener if no one connects SIGALRM
+ *
+ *
+ *
+ *
+ */
