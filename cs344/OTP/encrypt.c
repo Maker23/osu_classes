@@ -19,10 +19,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "otp_proto.h"
+
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 
-
-#define KEYSET 27
 char * encrypt(char * key, char * file);
 char * decrypt(char * key, char * cryptofile);
 
@@ -30,8 +32,8 @@ main (int arc, char **argv)
 {
 	char * clear;
 	char * crypto;
-	char * key =  "ambcnadoebpfgqdhridsjktelumfvnowgpxqhyrszit ujvwkxylz ";
-	char * file = "this is the text AND MORE text is now the thing";
+	char * key =  "ERIYZFYLJQSNKCFSZZTUAVIHTVXL PQDFNQUTCEBSLOCNIJAGRJWASCUBOUADJUIWZBOBVPIFS";
+	char * file = "this is the text AND MORE text is now the thing tag is a sleepy cat very v";
 
 	crypto = encrypt (key, file);
 	clear = decrypt (key, crypto);
@@ -47,9 +49,8 @@ char * encrypt(char * key, char * file)
 
 	int i;
 
-	int keynum[75];
-
-	char * newfile = malloc(75 * sizeof(char));
+	int *keynum = malloc(sizeof(int) * strlen(key));
+	char * newfile = malloc(sizeof(char) * strlen(file));
 	memset(newfile, 0, sizeof(newfile));
 
   for ( i=0; i< strlen(key); i++ )
@@ -124,8 +125,8 @@ int ModuloAdd (int f, int k)
 {
 	int tmp;
 	tmp = f + k;
-	if (tmp > KEYSET+1 )
-		tmp-=KEYSET;
+	if (tmp >= KEYSETLEN )
+		tmp-=KEYSETLEN;
 	return(tmp);
 }
 
@@ -134,6 +135,6 @@ int ModuloSub (int f, int k)
 	int tmp;
 	tmp = f - k;
 	if (tmp < 0 )
-		tmp+=KEYSET;
+		tmp+=KEYSETLEN;
 	return(tmp);
 }

@@ -84,7 +84,8 @@ main (int argc, char ** argv)
 	send(sSock, buffer, strlen(buffer), 0);
 	sendFileInChunks(sSock, myCrypt.textfp);
 
-	fprintf(stdout, "DEBUG receiving %d\n", myCrypt.textfilesize);
+	fprintf(stderr, "DEBUG receiving %d bytes\n", myCrypt.textfilesize);
+	// lookForFile(sSock);
 	receiveFileInChunks(sSock, stdout, myCrypt.textfilesize);
 
 }
@@ -127,8 +128,7 @@ int openOTPServerSocket(char *Hostname, char * PortStr)
 		perror("Reconnect socket");
 		exit(1);
 	}
-	fprintf(stdout, "Reconnecting on port %s\n", newPortStr);
-	fprintf(stdout, "DEBUG 2 tsock = |%d|\n", tSock);
+	fprintf(stderr, "Reconnecting on port %s\n", newPortStr);
 	return (tSock);
 }
 
@@ -153,6 +153,8 @@ int openFiles ( struct Cryptic * myCrypt)
 	if ( myCrypt->keyfilesize != myCrypt->textfilesize )
 	{
 		fprintf(stderr,"ERROR: text file and key file must be the same size\n");
+		fprintf(stderr,"       (%d byte key required for %s)\n",
+			myCrypt->textfilesize, myCrypt->textfilename);
 		return(-1);
 	}
 
@@ -196,7 +198,7 @@ int openSocketConnection ( char * host, char * port)
 
 	// loop through all the results and connect to the first we can
 	for(p = servinfo; p != NULL; p = p->ai_next) {
-		DEBUG && printf ("family = %d, socktype = %d, protocol = %d\n",
+		DEBUG && fprintf (stderr,"DBG family = %d, socktype = %d, protocol = %d\n",
 			p->ai_family, p->ai_socktype, p->ai_protocol);
 
 		// Create the socket
@@ -221,11 +223,19 @@ int openSocketConnection ( char * host, char * port)
 		return -1;
 	}
 
-	fprintf(stdout, "Connected to %s:%s\n", host, port);
+	fprintf(stderr, "Connected to %s:%s\n", host, port);
 
 	return (sockfd);
 }
 
+/*
+char * lookForFile( int CSock)
+{
+	char buffer[BUFSZ];
+	int bytecount=0;
+	int recvcount;
+}
+*/
 
 usage(progname)
 {
