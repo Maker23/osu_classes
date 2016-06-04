@@ -18,6 +18,5 @@ otp_enc_d: otp_server.c otp_proto.h otp_library.c
 	gcc -DFUNCTION=ENCODE -o otp_enc_d otp_server.c otp_library.c
 
 clean: 
-	rm -f otp_enc_d otp_dec_d
-	rm -f encrypt
+	rm -f otp_enc_d otp_dec_d otp_enc otp_dec keygen
 	rm -f program_log

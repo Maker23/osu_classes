@@ -45,7 +45,8 @@ main (int argc, char ** argv)
 	char Hostname[NI_MAXHOST];
 	char buffer[BUFSZ];
 	int	 sSock;
-	int 	rv;
+	int  rv;
+	int  scancount;
 
 
 	if (argc < 4 )
@@ -65,16 +66,46 @@ main (int argc, char ** argv)
 	}
 	if (( sSock = openOTPServerSocket(Hostname, argv[3])) < 0)
 	{
-		perror("Failed to get socket\n");
+		fprintf(stderr, "Failed to open socket on port %s: %s\n", argv[3], strerror(errno));
 		exit(1);
 	}
+	/*
+	 * Confirm the daemon does what we want
+	 */
+	memset(buffer,0, sizeof(buffer));
+	sprintf(buffer, "%s\n", FUNCTION_CMD);
+	send(sSock, buffer, strlen(buffer), 0);
+	recv(sSock, buffer, sizeof(buffer)-1, 0);
+	sscanf(buffer, "%*3s%*[ ]%d%n", &rv, &scancount);
+	if (scancount < 5)
+	{
+		fprintf (stderr, "Server refused protocol handshake (wrong port #?)\n");
+		exit(1);
+	}
+	if (rv != FUNCTION)
+	{
+		fprintf(stderr, "ERROR: Could not contact ");
+		if ( FUNCTION == DECODE )
+			fprintf(stderr, "decryption");
+		else
+			fprintf(stderr, "encryption");
+		fprintf(stderr, " server on port %s.  Exiting...\n", argv[3]);
+
+		exit(2);
+	}
+		
+
 	/*
 	 * Send the key
 	 */
 	memset(buffer,0, sizeof(buffer));
 	sprintf(buffer, "%s %d\n", KEY_CMD, myCrypt.keyfilesize);
 	send(sSock, buffer, strlen(buffer), 0);
-	sendFileInChunks(sSock, myCrypt.keyfp);
+	if ( sendFileInChunks(sSock, myCrypt.keyfp) < 0 )
+	{
+		fprintf(stderr, "Failed to send key file %s\n",myCrypt.keyfilename);
+		exit(1);
+	}
 
 	/*
 	 * Send the text
@@ -82,11 +113,23 @@ main (int argc, char ** argv)
 	memset(buffer,0, sizeof(buffer));
 	sprintf(buffer, "%s %d\n", FILE_CMD, myCrypt.textfilesize);
 	send(sSock, buffer, strlen(buffer), 0);
-	sendFileInChunks(sSock, myCrypt.textfp);
+	if ( sendFileInChunks(sSock, myCrypt.textfp) < 0 )
+	{
+		fprintf(stderr, "Failed to send text file %s\n",myCrypt.textfilename);
+		exit(1);
+	}
 
-	fprintf(stderr, "DEBUG receiving %d bytes\n", myCrypt.textfilesize);
-	// lookForFile(sSock);
+	DEBUG && fprintf(stderr, "DEBUG receiving %d bytes\n", myCrypt.textfilesize);
+	memset(buffer,0, sizeof(buffer));
+	recv(sSock, buffer, sizeof(buffer)-1, MSG_PEEK);
+	if ( (strncasecmp(buffer, BAD_RESPONSE, strlen(BAD_RESPONSE) )) == 0 )
+	{
+		fprintf(stderr, "ERROR: daemon responded with %s\n", buffer);
+		exit(1);
+	}
 	receiveFileInChunks(sSock, stdout, myCrypt.textfilesize);
+	DEBUG && fprintf(stderr, "*** Returning from Library receive file\n");
+	fprintf(stdout, "\n");
 
 }
 /*
@@ -128,7 +171,7 @@ int openOTPServerSocket(char *Hostname, char * PortStr)
 		perror("Reconnect socket");
 		exit(1);
 	}
-	fprintf(stderr, "Reconnecting on port %s\n", newPortStr);
+	DEBUG && fprintf(stderr, "Reconnecting on port %s\n", newPortStr);
 	return (tSock);
 }
 
@@ -150,9 +193,9 @@ int openFiles ( struct Cryptic * myCrypt)
 	}
 	myCrypt->keyfilesize = (int) statbuf.st_size - 1;
 
-	if ( myCrypt->keyfilesize != myCrypt->textfilesize )
+	if ( myCrypt->keyfilesize < myCrypt->textfilesize )
 	{
-		fprintf(stderr,"ERROR: text file and key file must be the same size\n");
+		fprintf(stderr,"ERROR: key file must be at least as long as text file\n");
 		fprintf(stderr,"       (%d byte key required for %s)\n",
 			myCrypt->textfilesize, myCrypt->textfilename);
 		return(-1);
@@ -223,7 +266,7 @@ int openSocketConnection ( char * host, char * port)
 		return -1;
 	}
 
-	fprintf(stderr, "Connected to %s:%s\n", host, port);
+	DEBUG && fprintf(stderr, "Connected to %s:%s\n", host, port);
 
 	return (sockfd);
 }
