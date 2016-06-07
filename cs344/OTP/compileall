@@ -1,0 +1,25 @@
+#!/bin/bash
+
+(cd src; make all)
+cp -pf src/otp_enc_d src/otp_dec_d src/otp_dec src/otp_enc src/keygen .
+
+if [ -e logs ]; then
+	if [ ! -d logs ]; then
+		mv -f logs logs.bad
+		mkdir logs
+	fi
+else
+	mkdir logs
+fi
+
+echo ""
+echo ""
+echo "GRADER PLEASE NOTE: "
+echo "Because the otp_*_d programs run in daemon mode, most error"
+echo "messages will not print to the terminal - even fatal errors"
+echo "such as 'bind: Address already in use'. However the daemon"
+echo "will exit with a non-zero exit code, and the error message"
+echo "will be logged to logs/program_log"
+echo ""
+echo "If you want to enable terminal errors, set TERMOUTPUT=1  in src/Makefile"
+echo ""

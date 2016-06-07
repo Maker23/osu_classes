@@ -19,11 +19,18 @@
 
 #define LOGFILE "logs/program_log"
 
+/* The length of commands (3 chars) is currently hard-coded in some
+ * of the parsing functions.  TODO: find a way around that.
+ *
+ * Until then all commands must be 3 characters long.
+ * Responses can be any length.
+ * */
 #define KEY_CMD "KEY"
 #define FILE_CMD "FIL"
 #define CLOSE_CMD "CLO"
 #define RECONNECT_CMD "RCN"
 #define FUNCTION_CMD "FUN"
+
 #define OK_RESPONSE "OK"
 #define BAD_RESPONSE "ERR"
 #define DATA_RESPONSE "DATA"

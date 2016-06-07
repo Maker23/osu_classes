@@ -38,6 +38,10 @@
 
 #define MATHDEBUG 0
 
+#ifndef TERMOUTPUT
+#define	TERMOUTPUT 1	 // if 0, failures will not print to the terminal, but will be logged
+#endif
+
 #include "otp_proto.h"
 
 enum States {
@@ -434,13 +438,16 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 			{
 				clientConnect->expectMoreData -= strlen(clientConnect->dataBuf);
 			}
-			DEBUG && fprintf(stderr, "Getting more data:   end: %d (state=%d)\n", clientConnect->expectMoreData, clientConnect->State);
-			DEBUG && fprintf(stderr, "Consumed data string is |%s|\n", clientConnect->dataBuf);
-			DEBUG && fprintf(stderr, "Remaining string is |%s|\n", recvData);
-			sprintf(logString, "%s:%s Received %d additional bytes", 
-				clientConnect->Host_name, clientConnect->CPort_name, strlen(clientConnect->dataBuf));
-			logaroo(logString);
-			//return(0); /*TODO: don't return until recvData is NULL */
+			if ( DEBUG )
+			{
+				fprintf(stderr, "Getting more data:   end: %d (state=%d)\n", clientConnect->expectMoreData, clientConnect->State);
+				fprintf(stderr, "Consumed data string is |%s|\n", clientConnect->dataBuf);
+				fprintf(stderr, "Remaining string is |%s|\n", recvData);
+				sprintf(logString, "%s:%s Received %d additional bytes", 
+					clientConnect->Host_name, clientConnect->CPort_name, 
+					strlen(clientConnect->dataBuf));
+				logaroo(logString);
+			}
 		}
 		else
 		{
@@ -448,10 +455,8 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 			 * State: Looking for something other than data bytes - should
 			 *        be a protocol command (KEY, FIL, etc)
 			 * ******************************************************* */
-			/*
-			 * TODO: If we're not looking for data, consume whitespace.
-			 */
-
+			//
+			// If we're not looking for data, consume whitespace.
 			while ( isWhitespace( recvData[0]))
 			{
 				recvData++;
@@ -459,6 +464,7 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 				continue;
 			}
 
+			// Sadly, the length of commands (3 chars) is hardcoded here
 			memset (command, 0, sizeof(command));
 			sscanf(recvData, "%3s", command);
 
@@ -612,33 +618,45 @@ int setUpListeningSocket(struct addrinfo *hints, char * PortString)
 		savError = errno;
 		if ( (sstatus = getservbyname(PortString, "tcp")) == NULL ) 
 		{
-			DEBUG && fprintf(stderr, "getservbyname: failed to find service \"%s\"\n", PortString);
+			snprintf(logString, sizeof(logString), "getservbyname: failed to find service \"%s\"", PortString);
+			logaroo(logString);
+			TERMOUTPUT && fprintf(stderr, "%s\n", logString);
 		}
 		else
 		{
-			DEBUG && fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(savError));
+			snprintf(logString, sizeof(logString),  "getaddrinfo: %s", gai_strerror(savError));
+			logaroo(logString);
+			TERMOUTPUT && fprintf(stderr, "%s\n", logString);
 		}
 		return(-1);
 	}
 	if ((sockListen = socket(servInfo->ai_family, servInfo->ai_socktype, servInfo->ai_protocol)) == -1 )
 	{
-		DEBUG && fprintf(stderr, "socket: %s\n", strerror(errno));
+		snprintf(logString, sizeof(logString), "socket: %s", strerror(errno));
+		logaroo(logString);
+		TERMOUTPUT && fprintf(stderr, "%s\n", logString);
 		return(-1);
 	}
 	if ((setsockopt(sockListen, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int))) == -1)
 	{
-		DEBUG && fprintf(stderr, "setsockopt: %s\n", strerror(errno));
+		snprintf(logString, sizeof(logString),  "setsockopt: %s", strerror(errno));
+		logaroo(logString);
+		TERMOUTPUT && fprintf(stderr, "%s\n", logString);
 		return(-1);
 	}
 	if ((bind(sockListen, servInfo->ai_addr, servInfo->ai_addrlen)) == -1 )
 	{
 		close (sockListen);
-		DEBUG && fprintf(stderr, "bind: %s\n", strerror(errno));
+		snprintf(logString, sizeof(logString),  "bind: %s", strerror(errno));
+		logaroo(logString);
+		TERMOUTPUT && fprintf(stderr, "%s\n", logString);
 		return(-1);
 	}
 	if ((listen(sockListen, 20) == -1))
 	{
-		DEBUG && fprintf(stderr, "listen: %s\n", strerror(errno));
+		snprintf(logString, sizeof(logString),  "listen: %s\n", strerror(errno));
+		logaroo(logString);
+		TERMOUTPUT && fprintf(stderr, "%s\n", logString);
 		return(-1);
 	}
 	
