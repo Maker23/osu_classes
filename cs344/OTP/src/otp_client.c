@@ -6,23 +6,15 @@
  *
  *
  */
-#include <dirent.h>
 #include <errno.h>
 #include <netdb.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h> // Yup, there's two of 'em
-#include <sys/wait.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 #ifndef FUNCTION
 #define FUNCTION ENCODE
@@ -69,9 +61,10 @@ main (int argc, char ** argv)
 		fprintf(stderr, "Failed to open socket on port %s: %s\n", argv[3], strerror(errno));
 		exit(1);
 	}
-	/*
-	 * Confirm the daemon does what we want
-	 */
+	/* **************************************************
+	 * Confirm the daemon does what we want: 
+	 * send the FUNCTION command
+	 * **************************************************/
 	memset(buffer,0, sizeof(buffer));
 	sprintf(buffer, "%s\n", FUNCTION_CMD);
 	send(sSock, buffer, strlen(buffer), 0);
@@ -94,10 +87,9 @@ main (int argc, char ** argv)
 		exit(2);
 	}
 		
-
-	/*
+	/* **************************************************
 	 * Send the key
-	 */
+	 * **************************************************/
 	memset(buffer,0, sizeof(buffer));
 	sprintf(buffer, "%s %d\n", KEY_CMD, myCrypt.keyfilesize);
 	send(sSock, buffer, strlen(buffer), 0);
@@ -107,9 +99,9 @@ main (int argc, char ** argv)
 		exit(1);
 	}
 
-	/*
-	 * Send the text
-	 */
+	/* **************************************************
+	 * Send the text to be encrypted or decrypted
+	 * **************************************************/
 	memset(buffer,0, sizeof(buffer));
 	sprintf(buffer, "%s %d\n", FILE_CMD, myCrypt.textfilesize);
 	send(sSock, buffer, strlen(buffer), 0);
@@ -119,6 +111,10 @@ main (int argc, char ** argv)
 		exit(1);
 	}
 
+	/* **************************************************
+	 * Now expect back the encrypted or decrypted version.
+	 * Should be the same size as the text we sent.
+	 * **************************************************/
 	DEBUG && fprintf(stderr, "DEBUG receiving %d bytes\n", myCrypt.textfilesize);
 	memset(buffer,0, sizeof(buffer));
 	recv(sSock, buffer, sizeof(buffer)-1, MSG_PEEK);
@@ -127,14 +123,16 @@ main (int argc, char ** argv)
 		fprintf(stderr, "ERROR: daemon responded with %s\n", buffer);
 		exit(1);
 	}
+	/* Just print the received text to stdout per the assignment */
 	receiveFileInChunks(sSock, stdout, myCrypt.textfilesize);
-	DEBUG && fprintf(stderr, "*** Returning from Library receive file\n");
 	fprintf(stdout, "\n");
-
 }
+
+
 /*
- * Wackiness ensues: We open a socket, are given a new port #,
- * and have to open another socket.
+ * Wackiness ensues: We open a socket with the server,  
+ * are given a new port #, and have to open another socket.
+ * Do all that here.
  */
 int openOTPServerSocket(char *Hostname, char * PortStr)
 {
@@ -149,7 +147,6 @@ int openOTPServerSocket(char *Hostname, char * PortStr)
 		perror("Open socket");
 		exit(1);
 	}
-	//recvcount = recv(sSock,&buffer,sizeof(buffer), MSG_DONTWAIT);
 	recvcount = recv(sSock,&buffer,sizeof(buffer), 0);
 	if (recvcount <= 0)
 	{
@@ -158,6 +155,10 @@ int openOTPServerSocket(char *Hostname, char * PortStr)
 	}
 	close(sSock);
 
+	/* **************************************************
+	 * Expect to see the Reconnect command with a new port #
+	 * Anything else is an error.
+	 * **************************************************/
 	if ((strncasecmp(buffer, RECONNECT_CMD, strlen(RECONNECT_CMD))) != 0 )
 	{
 		fprintf(stderr, "Received unrecognized command from server \"%s\"\n", buffer);
@@ -201,7 +202,6 @@ int openFiles ( struct Cryptic * myCrypt)
 		return(-1);
 	}
 
-
 	if ((myCrypt->textfp = fopen(myCrypt->textfilename, "r")) == NULL) 
 	{
 		fprintf(stderr, "Can't open %s for reading: %s\n",
@@ -240,6 +240,7 @@ int openSocketConnection ( char * host, char * port)
 	}
 
 	// loop through all the results and connect to the first we can
+	// Although this is silly 'cause we're all about the IPv4 here
 	for(p = servinfo; p != NULL; p = p->ai_next) {
 		DEBUG && fprintf (stderr,"DBG family = %d, socktype = %d, protocol = %d\n",
 			p->ai_family, p->ai_socktype, p->ai_protocol);
@@ -271,14 +272,6 @@ int openSocketConnection ( char * host, char * port)
 	return (sockfd);
 }
 
-/*
-char * lookForFile( int CSock)
-{
-	char buffer[BUFSZ];
-	int bytecount=0;
-	int recvcount;
-}
-*/
 
 usage(progname)
 {

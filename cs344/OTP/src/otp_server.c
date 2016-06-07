@@ -14,23 +14,13 @@
  * The server remains running until it receives a SIGINT or <ctrl>-C
  *
  */
-#include <dirent.h>
 #include <errno.h>
 #include <netdb.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h> // Yup, there's two of 'em
-#include <sys/wait.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 #ifndef FUNCTION
 #define FUNCTION ENCODE
@@ -151,7 +141,10 @@ int main ( int argc, char ** argv )
 				errcount++;
 				continue;
 			}
-			/* ************************************************************* */
+			/* *****************************************************
+			 * Client has connected; now look for a new port the server
+			 * can open for the use of this client.
+			 * *****************************************************/
 			sprintf(ChildPortStr, "%hu", ChildPortNum);
 			while ( (ChildListenSocket = setUpListeningSocket(&hints,ChildPortStr) ) < 0 )
 			{
@@ -185,10 +178,15 @@ int main ( int argc, char ** argv )
 			}
 			logaroo(logString);
 
-			/* 
-			 * Now we have a listening child port. Send a Reconnect command
-			 * to the client. Close the client socket. Fork here.
-			 */
+			/* *****************************************************
+			 * Now we have a NEW listening port. Send a Reconnect 
+			 * command to the client so it knows which port to use. 
+			 * Close the original client socket. 
+			 *
+			 * Fork here; child handles the new listening socket,
+			 * parent does not wait but goes immediately back to
+			 * listening on the original port #
+			 * *****************************************************/
 			if (DEBUG) fprintf(stderr, "Client will reconnect on port %s (%d)\n", ChildPortStr, ChildPortNum);
 			snprintf(sendData, BUFSZ, "%s %s\n", RECONNECT_CMD, ChildPortStr);
 			send(ServerDataSocket, sendData, strlen(sendData), 0);
@@ -197,6 +195,7 @@ int main ( int argc, char ** argv )
 			if ( pid < 0 )
 			{
 				// FATAL ERROR oh noes what to do
+				exit(1);
 			}
 			else if (pid == 0 )
 			{
@@ -226,12 +225,14 @@ int main ( int argc, char ** argv )
 				clientConnect.keylength = 0;
 				clientConnect.textlength = 0;
 
+				/* ******************************************************
+				 * The handleConnection function does all the work :)
+				 * *****************************************************/
 				exit ( handleConnection(&clientConnect));
 			}
 			else
 			{
-				// Parent process
-				// Log connection; close sockets
+				// Parent process; close sockets, go back to listening
 				close(ChildListenSocket);
 				close(ServerDataSocket);
 			}
@@ -255,16 +256,16 @@ int handleConnection(struct Connection * clientConnect)
 	char *file = NULL;
 	char *munged_file = NULL;
 
-	/* ********************************************************
+	/* *******************************************************
 	* Loop indefinitely on the client socket, collecting commands
 	* and acting on them. This exits when the client closes the socket.
 	* ********************************************************/
 	while ( 1 )
 	{
-		/*
+		/* *****************************************************
 		 * Receive data from the socket, store it in a char array for
-		 * processing.
-		 */
+		 * processing. 
+		 * *****************************************************/
 		memset(recvData, 0, sizeof(recvData));
 		memset (clientConnect->dataBuf, 0, BUFSZ);
 		recvBytes = recv(clientConnect->CSock, &recvData, sizeof(recvData)-1,0);
@@ -280,25 +281,25 @@ int handleConnection(struct Connection * clientConnect)
 			close(clientConnect->CSock);
 			return(1);
 		}
-		//DEBUG && fprintf(stderr, "DBG received raw message |%s| from client\n", recvData);
 
-		/* *******************************************************
+		/* *****************************************************
 		 * Strip trailing newlines and CRs
 		 * Send resulting string to subroutine for parsing and execution
-		 * ******************************************************/
+		 * *****************************************************/
 		stripTrailingNewline(recvData);
 		DEBUG && fprintf(stderr, "DBG received message |%s| from client\n", recvData);
 
-		// TODO: use fcntl to non-block the receive
 		retval = parseReceiveBuffer(clientConnect, &recvData, strlen(recvData));
 		if ( retval < 0 )
 		{
-			// Fatal error
+			// Fatal error; disconnect.
+			// The reason for the error should be logged by the subroutine
 			close(clientConnect->CSock);
 			return(retval);
 		}
 		if ( retval > 0 )
 		{
+			// Non-fatal error: send an error to the client
 			snprintf(sendData, BUFSZ, "%s %s\n", BAD_RESPONSE, clientConnect->CPort_name);
 			send(clientConnect->CSock, sendData, strlen(sendData), 0);
 		}
@@ -322,8 +323,13 @@ int handleConnection(struct Connection * clientConnect)
 			{
 				if ( clientConnect->Key != NULL && clientConnect->Text != NULL ) 
 				{
-					//DEBUG && fprintf(stderr, "WHOOP! I'm ready to encrypt file \n========= \"%s\" with key \n========= \"%s\"\n",
-						//clientConnect->Text, clientConnect->Key);
+					/* ****************************************************
+					 * We have a key, and a file, and we're not expecting
+					 * any more data.  ENCRYPT or DECRYPT NOW!!
+					 * ****************************************************/
+					DEBUG && fprintf(stderr, "WHOOP! I'm ready to en/de-crypt file \n");
+					DEBUG && fprintf(stderr, "========= \"%s\" with key \n========= \"%s\"\n",
+						clientConnect->Text, clientConnect->Key);
 					if ( FUNCTION == DECODE ) {
 						munged_file = decrypt(clientConnect->Key, clientConnect->Text);
 					}
@@ -331,22 +337,17 @@ int handleConnection(struct Connection * clientConnect)
 						// Encoding is the default
 						munged_file = encrypt(clientConnect->Key, clientConnect->Text);
 					}
-					//DEBUG && fprintf(stderr, "YAHOO sending munged file:\n%s\n", munged_file);
-					
+					DEBUG && fprintf(stderr, "YAHOO sending munged file:\n%s\n", munged_file);
+
 					// Commenting this out for now, client doesn't need it
+					// But it would be nice to have a full handshake protocol :)
 					// snprintf(sendData, BUFSZ, "%s %d\n", DATA_RESPONSE, strlen(clientConnect->Text));
 					//send(clientConnect->CSock, sendData, strlen(sendData), 0);
-					// TODO: We need a real sending loop
+
 					sendDataInChunks(clientConnect->CSock, munged_file);
 
-					FILE * outfd = fopen("outfile", "w");
-					fwrite((const void *) munged_file, sizeof(char), clientConnect->textlength, outfd);
-					fclose(outfd);
-					
-					//
 					// We can re-use the key, but not the text
-					//free(clientConnect->Text);
-					clientConnect->Text = NULL;
+					free(clientConnect->Text);
 				}
 				else
 				{
@@ -396,14 +397,14 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 	char FileCmd[] = FILE_CMD;
 	char CloseCmd[] = CLOSE_CMD;
 
-	/* ******************************************************* */
 
 	DEBUG &&  fprintf(stderr, "DBG Entering parseReceiveBuffer\n");
-	//DEBUG && fprintf(stderr, "DBG received on socket |%s|, recvBytes=%d\n", recvData, recvBytes);
+	DEBUG && fprintf(stderr, "DBG received on socket |%s|, recvBytes=%d\n", recvData, recvBytes);
 
-	/*
-	 * State: Adding more bytes to Key or Text
-	 * ******************************************************* */
+	/* **********************************************************
+	 * Loop through the buffer that was passed to this function
+	 * until it's NULL or has no bytes left to consume
+	 * **********************************************************/
 	while ( *recvData && (remainingBytes > 0) )
 	{
 		DEBUG && fprintf(stderr, "DBG loop %d with data |%s|\n", l++, recvData);
@@ -411,8 +412,12 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 
 		if ( clientConnect->expectMoreData > 0 )
 		{
-			// Consume up to the amount of data we're expecting,
-			// or until the end of recvData
+			/* ******************************************************* 
+	 		* State: Adding more bytes to Key or Text
+	 		* 
+			* Consume up to the amount of data we're expecting, 
+			* or until the end of recvData
+			* ********************************************************/
 			DEBUG && fprintf(stderr, "Getting more data: start: %d (state=%d)\n", 
 				clientConnect->expectMoreData, clientConnect->State);
 
@@ -432,7 +437,7 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 			if ( strlen(clientConnect->dataBuf) >= clientConnect->expectMoreData )
 			{
 				clientConnect->expectMoreData = 0;
-				//clientConnect->State = looking_for_command;
+				//clientConnect->State = looking_for_command; // not realy using this
 			}
 			else
 			{
@@ -440,7 +445,8 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 			}
 			if ( DEBUG )
 			{
-				fprintf(stderr, "Getting more data:   end: %d (state=%d)\n", clientConnect->expectMoreData, clientConnect->State);
+				fprintf(stderr, "Getting more data:   end: %d (state=%d)\n", 
+					clientConnect->expectMoreData, clientConnect->State);
 				fprintf(stderr, "Consumed data string is |%s|\n", clientConnect->dataBuf);
 				fprintf(stderr, "Remaining string is |%s|\n", recvData);
 				sprintf(logString, "%s:%s Received %d additional bytes", 
@@ -451,12 +457,11 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 		}
 		else
 		{
-			/*
+			/* ******************************************************* 
 			 * State: Looking for something other than data bytes - should
 			 *        be a protocol command (KEY, FIL, etc)
 			 * ******************************************************* */
-			//
-			// If we're not looking for data, consume whitespace.
+			// First consume leading whitespace.
 			while ( isWhitespace( recvData[0]))
 			{
 				recvData++;
@@ -470,24 +475,35 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 
 			if ((strcmp(command,"") == 0) || ( remainingBytes < 3 )) {
 
-				sprintf(logString, "%s:%s Unrecognized command |%s|", clientConnect->Host_name, clientConnect->CPort_name,command);
+				sprintf(logString, "%s:%s Unrecognized command |%s|", 
+					clientConnect->Host_name, clientConnect->CPort_name,command);
 				logaroo(logString);
 				return(1);
 			}
 
+			/* ******************************************************* 
+			 * FUNCTION command
+			 * ******************************************************* */
 			if ( (strncasecmp(command, FUNCTION_CMD, strlen(FUNCTION_CMD))) == 0 )
 			{
 				clientConnect->State=function_query;
 				return(0);
 			}
 
+			/* ******************************************************* 
+			 * CLOSE command
+			 * ******************************************************* */
 			if ( (strncasecmp(command, CloseCmd, strlen(CloseCmd))) == 0 )
 			{
-				sprintf(logString, "%s:%s Closing connection", clientConnect->Host_name, clientConnect->CPort_name);
+				sprintf(logString, "%s:%s Closing connection", 
+					clientConnect->Host_name, clientConnect->CPort_name);
 				logaroo(logString);
 				clientConnect->State=closing;
 				return(0);
 			}
+			/* ******************************************************* 
+			 * KEY or FIL command
+			 * ******************************************************* */
 			else if ( (strncasecmp(command, KeyCmd,  strlen(KeyCmd)))  == 0 
 							||(strncasecmp(command, FileCmd, strlen(FileCmd))) == 0 )
 			{
@@ -516,9 +532,12 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 				}
 				recvData += ccount;
 				remainingBytes -= ccount;
-				DEBUG && fprintf(stderr, "DBG length = %d, data = |%s|\n", dataLength, clientConnect->dataBuf);
-				DEBUG && fprintf(stderr, "DBG got %d bytes\n", strlen(clientConnect->dataBuf));
-				DEBUG && fprintf(stderr, "DBG remaining recvData is |%s| (%p) %d bytes remaining\n", recvData,*recvData,remainingBytes);
+				DEBUG && fprintf(stderr, "DBG length = %d, data = |%s|\n", 
+					dataLength, clientConnect->dataBuf);
+				DEBUG && fprintf(stderr, "DBG got %d bytes\n", 
+					strlen(clientConnect->dataBuf));
+				DEBUG && fprintf(stderr, "DBG remaining recvData is |%s| (%p) %d bytes remaining\n", 
+					recvData,*recvData,remainingBytes);
 
 				if ( strlen(clientConnect->dataBuf) < dataLength )
 				{
@@ -527,13 +546,15 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 				}
 				if ( (strncasecmp(command, KeyCmd,  strlen(KeyCmd)))  == 0 )
 				{
-					sprintf(logString, "%s:%s Receiving %d byte key", clientConnect->Host_name, clientConnect->CPort_name, dataLength);
+					sprintf(logString, "%s:%s Receiving %d byte key", 
+						clientConnect->Host_name, clientConnect->CPort_name, dataLength);
 					logaroo(logString);
 					clientConnect->State=receiving_key;
 				}
 				else		
 				{
-					sprintf(logString, "%s:%s Receiving %d byte file", clientConnect->Host_name, clientConnect->CPort_name, dataLength);
+					sprintf(logString, "%s:%s Receiving %d byte file", 
+						clientConnect->Host_name, clientConnect->CPort_name, dataLength);
 					logaroo(logString);
 					clientConnect->State=receiving_file;
 				}
@@ -544,16 +565,17 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 			else
 			{
 				clientConnect->State=looking_for_command;
-				sprintf(logString, "%s:%s Unrecognized command |%s|", clientConnect->Host_name, clientConnect->CPort_name, command);
+				sprintf(logString, "%s:%s Unrecognized command |%s|", 
+					clientConnect->Host_name, clientConnect->CPort_name, command);
 				logaroo(logString);
 				recvData=NULL;
 				return(1); // TODO: should this be fatal?
 			}
 		}
-		/*
-		 * SAVE DATA, GET SOME MORE
-		 *
-		 */
+		/* ******************************************************* 
+		 * Save the data by appending it to key or file 
+		 * in the Connection struct
+		 * *******************************************************/
 		if ( clientConnect->State == receiving_key )
 		{
 			// Append buffer to key
@@ -592,11 +614,9 @@ int parseReceiveBuffer(struct Connection* clientConnect, char * recvData, int re
 			DEBUG && fprintf(stderr, "DBG text is now = %s\n", clientConnect->Text);
 		}
 	}
-	DEBUG && fprintf(stderr, "DBG end parseReceive loop %d with data |%s|\n", l++, recvData);
-
-	return(0);
 
 	DEBUG && 	fprintf(stderr, "Exiting parseReceiveBuffer\n");
+	return(0);
 }
 
 int setUpListeningSocket(struct addrinfo *hints, char * PortString)
@@ -611,7 +631,8 @@ int setUpListeningSocket(struct addrinfo *hints, char * PortString)
  
 	DEBUG && fprintf(stderr, "Entering setUpListeningSocket\n");
 	
-	// For the purposes of the assignment all error output in this function is turned off
+	// For the purposes of the assignment all error output in this function
+	// goes to the logs, not to the terminal
  	
 	if ( (status = getaddrinfo(NULL, PortString, hints, &servInfo)) !=0 ) 
 	{
@@ -691,6 +712,7 @@ int isWhitespace(char theChar)
 		 ||(theChar == '\t'))
 */
 
+  // Actually... just remove invalid characters
 	if ( (int)theChar <= 32 || (int)theChar > 126)
 	{
 		DEBUG && fprintf(stderr, "Removed whitespace '%d'\n", (int) theChar);
@@ -738,7 +760,7 @@ char * growstring (char *string, int newlength)
 	newstring = (char *) malloc (newlength * sizeof(char));
 	if (newstring == NULL)
 	{
-		fprintf(stderr, "HALP! FATAIL ERRORRS! MALLOC \n");
+		fprintf(stderr, "HALP! FATAIL ERRORRS! MALLOC NO GOOD \n");
 		exit(1);
 	}
 	memset(newstring, 0, newlength * sizeof(char));
@@ -758,7 +780,7 @@ char * encrypt(char * key, char * file)
 	char * newfile = malloc(sizeof(char) * strlen(file));
 	if (keynum == NULL || newfile == NULL)
 	{
-		fprintf(stderr, "HALP! FATAIL ERRORRS! MALLOC KEYNUM ORE NEWFILE\n");
+		fprintf(stderr, "HALP! FATAL ERROrz! MALLOC KEYNUM OR NEWFILE\n");
 		exit(1);
 	}
 
@@ -789,12 +811,11 @@ char * encrypt(char * key, char * file)
 			newfile[i] = ' ';
 	  else if ( x < 0 || x > 26 )
 		{
-			DEBUG && fprintf (stderr, "DBF*********************** wth\n");
+			DEBUG && fprintf (stderr, "DBG this should never happen\n");
 		}
 	  else
 			newfile[i] = (char)(x+65);
 	}
-	DEBUG && fprintf (stderr, "DBF************ last two chars =  %d %d\n", newfile[i-1], newfile[i-2]);
 	newfile[i] = '\0'; // rlly?
 
 	DEBUG && fprintf(stderr,"DBG encrypted %d bytes\n", i-1);
@@ -839,13 +860,12 @@ char * decrypt(char * key, char * file)
 			decrypt[i] = ' ';
 	  else if ( x < 0 || x > 26 )
 		{
-			DEBUG && fprintf (stderr, "DBF*********************** wth\n");
+			DEBUG && fprintf (stderr, "DBG this should never happen either\n");
 		}
 	  else
 			decrypt[i] = (char)(x+65);
 	}
-	DEBUG && fprintf (stderr, "DBF************ last two chars =  %d %d\n", decrypt[i-1], decrypt[i-2]);
-	decrypt[i] = '\0'; // rlly?
+	decrypt[i] = '\0'; // rlly? No, this is redundant.
 
 	return(decrypt);
 }
