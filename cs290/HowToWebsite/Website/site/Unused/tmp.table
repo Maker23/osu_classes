@@ -1,0 +1,6 @@
+				<table> 
+				<tr>
+				<td width='30%'><a style="color:#fff" href="/"><b>Main page</b></a></td>
+				<td width='30%'><a style="color:#fff" href="/site/userAuth.html"><b>User authentication</b></a></td>
+				<td width='30%'><a style="color:#fff" href="/site/pinSearch.html"><b>Searching pins and boards</b></a></td>
+				</table>
