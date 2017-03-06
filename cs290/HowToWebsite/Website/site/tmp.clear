@@ -1,0 +1,7 @@
+					<script>
+					function clearResults() {
+						document.getElementById('Output').innerHTML = ""
+					}
+					</script>
+					<button class="btn btn-default" onclick="clearResults();" role="button">
+					Clear results&raquo;</button>'
