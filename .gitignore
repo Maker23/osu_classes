@@ -1,0 +1,4 @@
+*.o
+*.exe
+*.gz
+node_modules/
