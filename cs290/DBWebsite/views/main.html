@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script src="script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<link rel="stylesheet" href="/jumbotron.css">
+	<title>abrasss@ Homework Assignment: How-To website CS290-400-W17</title>
+</head>
+<body>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron" style="background-color:#f00;color:#fff">
+      <div class="container">
+				<table> 
+				<tr>
+				<td width='30%'><a style="color:#fff" href="/"><b>Main page</b></a></td>
+				<td width='30%'><a style="color:#fff" href="/site/userAuth.html"><b>User authentication</b></a></td>
+				<td width='30%'><a style="color:#fff" href="/site/pinSearch.html"><b>Searching pins and boards</b></a></td>
+				</table>
+        <h1>How to use the Pinterest API</h1>
+        <p>
+				An interactive guide written for CS290, W17
+				</p>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-4">
+          <h2>Authenticating Users</h2>
+          <p>Pinterest API calls need to be made on behalf of a
+					Pinterest user, so the first thing you need to do is
+					get your website user to establish their Pinterest credentials. 
+					Pinterest uses oAuth 2.0 for this.
+          <p><a class="btn btn-default" href="site/userAuth.html" role="button">Read more &raquo;</a></p>
+        </div>
+        <div class="col-md-4">
+          <h2>Searching pins</h2>
+          <p>
+					Once the user is authenticated pins can be searched with a simple GET command. 
+					Only pin descriptions are searched with the default interface, but more complex
+					searches can be done on the client side by retrieving all the user's pins and
+					examining their fields.
+          <p><a class="btn btn-default" href="site/pinSearch.html" role="button">See examples&raquo;</a></p>
+          <p><a class="btn btn-default" href="https://developers.pinterest.com/docs/api/pins/" role="button">Read More&raquo;</a></p>
+        </div>
+        <div class="col-md-4">
+          <h2>Retrieving boards</h2>
+          <p>Boards, like pins, can be accessed with a GET command. Boards only have a few
+					bits of data associated with them - name, URL, and ID.
+
+          <p><a class="btn btn-default" href="site/pinSearch.html" role="button">See examples&raquo;</a></p>
+          <p><a class="btn btn-default" href="https://developers.pinterest.com/docs/api/boards/" role="button">Read More&raquo;</a></p>
+       </div>
+      </div>
+
+      <hr>
+
+      <footer>
+        <p>&copy; 2017 abrasss@oregonstate.edu</p>
+      </footer>
+    </div> <!-- /container -->
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<title>abrasss@ Homework Assignment: Exercise website with database, CS290-400-W17</title>
+</head>
+<body>
+
+	<div class="container" style="background-color:blue; color:white">
+       <h1>Exercise tracking database</h1>
+       <p>
+			Written for CS290-400, W17
+			</p>
+  </div>
+	<p>
+
+		<!-- Top section: add a new exercise -->
+    <div class="container"> 
+
+			<!-- field names row -->
+      <div class="row">
+        <div class="col-sm-2"><strong> Exercise</strong></div>
+        <div class="col-sm-2"><strong> reps </strong></div>
+				<div class="col-sm-2"><strong> weight </strong></div>
+        <div class="col-sm-2"><strong> Date </strong></div>
+        <div class="col-sm-4"><strong>Kilos?</strong> </div>
+			</div> <!-- row -->
+
+			<!-- Add Exercise input row -->
+			<div class="row">
+				<form id="entryForm" method="post">
+					<fieldset>
+						<input class="col-sm-2" type="text" name="name" id="exerciseEntered">
+						<input class="col-sm-2" type="number" min="1" name="reps" id="repsEntered">
+						<input class="col-sm-2" type="number" min="0" name="weight" id="weightEntered">
+						<input class="col-sm-2" type="date" name="date" id="dateEntered">
+        	<div class="col-sm-4"> 
+						<input type="radio" name="kilos" value="1" id="kilosChecked" style="margin-right:30px">
+						<!-- <input type="submit" id="newExercise" name="newExercise" value="Add Exercise"> -->
+						<button type="button" id="addExercise" name="addExercise" value="addExercise">Add Exercise</button>
+						<input type="reset" value="Clear">
+					</div>
+					</fieldset>
+				</form>
+				<!-- --------------------------------------------------------  -->
+					<script>	
+						document.getElementById('addExercise').addEventListener('click', function() {
+							clientAddExercise(
+								location,
+								'exerciseHistory',
+								{
+									'name': document.getElementById('exerciseEntered').value,
+									'reps': document.getElementById('repsEntered').value,
+									'weight': document.getElementById('weightEntered').value,
+									'date': document.getElementById('dateEntered').value,
+									'kilos': document.getElementById('kilosChecked').checked})
+							}, false);
+					</script>
+
+				<!-- --------------------------------------------------------  -->
+			</div> <!-- row -->
+		</div> <!-- container -->
+
+
+		<!-- Bottom section: your exercise history -->
+    <div class="container" id="listing">
+      <div class="row">
+        <h2>Your exercise history</h2>
+			</div>
+			
+			<div id = "exerciseHistory"> <!-- history section -->
+			{{#each results}}
+      <div class="row" id="dataRow{{this.id}}">
+        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.name}} </div>
+        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.reps}} </div>
+				<div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.weight}}
+					{{#if this.lbs}}
+					lbs
+					{{else}}
+					kg
+					{{/if}}
+				</div>
+        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.date}}</div>
+        <div class="col-sm-4">
+					<input type="hidden" name=rowKey value="dataRow{{this.id}}"> 
+					<button type="button" id="edit{{this.id}}" name="editButton" value={{this.id}}>Edit</button>
+					<button type="button" id="remove{{this.id}}" name="removeButton" value={{this.id}}>Delete</button>
+					<script>	
+						document.getElementById("edit{{this.id}}").addEventListener('click', function() {
+							clientEditRow(
+								location,
+								"dataRow{{this.id}}",
+								{
+									'id':"{{this.id}}",
+									'name':"{{this.name}}", 
+									'reps':"{{this.reps}}", 
+									'weight':"{{this.weight}}", 
+									'lbs':"{{this.lbs}}", 
+									'date':"{{this.date}}"})
+								}, false);
+
+						document.getElementById("remove{{this.id}}").addEventListener('click', function() {
+							clientDeleteRow(
+								location,
+								"dataRow{{this.id}}",
+								"{{this.id}}")}, false);
+						</script>
+				</div><!-- buttons -->
+			</div> <!-- row -->
+			{{/each}}
+			</div> <!-- history -->
+
+    </div> <!-- /container -->
+
+    <hr>
+    <footer>
+      <p>&copy; 2017 abrasss@oregonstate.edu</p>
+    </footer>
+</body>
+</html>
