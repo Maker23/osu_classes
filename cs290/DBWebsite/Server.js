@@ -50,7 +50,7 @@ router.get("/",function(req,res){
 		context.textresults = JSON.stringify(rows);
 		context.results = JSON.parse(context.textresults);
 		context.history = context["results"].length;
-		console.log(context);
+		//console.log(context);
 		res.render(site + "home.handlebars", context);
 	});
 });
@@ -59,12 +59,12 @@ router.get("/delete",function(req,res){
 	var context = {}
 	var change = null;
 
-	console.log ("Delete requested");
-	console.log("Req.body: ", req.body, "Req.params:", req.params);
+	//console.log ("Delete requested");
+	//console.log("Req.body: ", req.body, "Req.params:", req.params);
 	if ( req.query.id ) {
 		var itemID = req.query.id;
 		var change='DELETE FROM workouts WHERE id = '.concat('"', itemID, '";');
-		console.log("change is ", change);
+		//console.log("change is ", change);
 		pool.query(change, function (err,rows,fields)
 		{
 			if (err) {
@@ -86,8 +86,8 @@ router.get("/update",function(req,res){
 	var context = {}
 	var change = null;
 
-	console.log ("Update requested");
-	console.log("Req.body: ", req.body, "Req.params:", req.params);
+	//console.log ("Update requested");
+	//console.log("Req.body: ", req.body, "Req.params:", req.params);
 	if ( req.query.id ) {
 		var newName = req.query.name;
 		var newReps = req.query.reps;
@@ -95,7 +95,7 @@ router.get("/update",function(req,res){
 		var newDate = req.query.date;
 		var newLbs = req.query.lbs;
 		change='UPDATE workouts SET '.concat('name="', newName, '", reps="',newReps, '", weight="' ,newWeight,'", date="',newDate,'", lbs="', newLbs, '" WHERE id="',req.query.id,'";');
-		console.log("change is ", change);
+		//console.log("change is ", change);
 		pool.query(change, function (err,rows,fields)
 		{
 			if (err) {
@@ -105,7 +105,7 @@ router.get("/update",function(req,res){
 					.send("Database Error");
 			}
 			else {
-				console.log("Sending OK");
+				//console.log("Sending OK");
 				res.status(200)
 					.send("OK");
 			}
@@ -121,12 +121,12 @@ router.get("/getitem",function(req,res){
 	var context = {}
 	var change = null;
 
-	console.log ("GetItem requested");
-	console.log("Req.body: ", req.body, "Req.params:", req.params);
+	//console.log ("GetItem requested");
+	//console.log("Req.body: ", req.body, "Req.params:", req.params);
 	if ( req.query.id ) {
 		var itemID = req.query.id;
 		var change='SELECT id,name,reps,weight,lbs, DATE_FORMAT(date,"%Y-%m-%d") AS date FROM workouts WHERE id = '.concat('"', itemID, '";');
-		console.log("change is ", change);
+		//console.log("change is ", change);
 		pool.query(change, function (err,rows,fields)
 		{
 			if (err) {
@@ -147,7 +147,7 @@ router.get("/addExercise",function(req,res){
 	var context = {}
 	var change = null;
 
-	console.log("Req.query: ", req.query);
+	//console.log("Req.query: ", req.query);
 	var newName = req.query.name;
 	var newReps = req.query.reps;
 	var newWeight = req.query.weight;
@@ -155,9 +155,9 @@ router.get("/addExercise",function(req,res){
 	var newLbs = req.query.lbs;
 	//
 	change='INSERT INTO workouts (name, reps,weight,date,lbs ) VALUES ("'.concat(newName, '", "' , newReps , '", "' , newWeight , '", "' , newDate , '", "' , newLbs , '");');
-	console.log ("New item entered");
-	console.log(newName, newReps, newWeight, newDate, newLbs);
-	console.log("change is ", change);
+	//console.log ("New item entered");
+	//console.log(newName, newReps, newWeight, newDate, newLbs);
+	//console.log("change is ", change);
 
 	if (change ) {
 		pool.query(change, function (err,rows,fields)
@@ -169,7 +169,7 @@ router.get("/addExercise",function(req,res){
 			}
 			context.textresults = JSON.stringify(rows);
 			context.results = JSON.parse(context.textresults);
-			console.log("mySQL returned: ", context);
+			//console.log("mySQL returned: ", context);
 			res.send(context.textresults);
 		});
 		//TODO: eliminate the need to render the entire page
@@ -182,7 +182,7 @@ router.post("/",function(req,res){
 	var context = {}
 	var change = null;
 
-	console.log("Req.body: ", req.body);
+	//console.log("Req.body: ", req.body);
 	if ( req.body['newExercise'] ) {
 		var newName = req.body.exercise;
 		var newReps = req.body.reps;
@@ -193,14 +193,14 @@ router.post("/",function(req,res){
 		if ( newKilos ) { lbs='false'; }
 		//TODO: Add to the database here
 		change='INSERT INTO workouts (name, reps,weight,date,lbs ) VALUES ("'.concat(newName, '", "' , newReps , '", "' , newWeight , '", "' , newDate , '", "' , lbs , '");');
-		console.log ("New item entered");
-		console.log(newName, newReps, newWeight, newDate, newKilos);
-		console.log("change is ", change);
+		//console.log ("New item entered");
+		//console.log(newName, newReps, newWeight, newDate, newKilos);
+		//console.log("change is ", change);
 	}
 
 	else if ( req.body['editButton'] ) {
-		console.log ("Edit requested");
-		console.log(req.body);
+		//console.log ("Edit requested");
+		//console.log(req.body);
 		var editItem = req.body.editButton;
 	}
 
