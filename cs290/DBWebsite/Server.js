@@ -93,10 +93,8 @@ router.get("/update",function(req,res){
 		var newReps = req.query.reps;
 		var newWeight = req.query.weight;
 		var newDate = req.query.date;
-		var newKilos = req.query.kilos;
-		var lbs = 'true';
-		if ( newKilos ) { lbs='false'; }
-		change='UPDATE workouts SET '.concat('name="', newName, '", reps="',newReps, '", weight="' ,newWeight,'", date="',newDate,'", lbs="', lbs, '" WHERE id="',req.query.id,'";');
+		var newLbs = req.query.lbs;
+		change='UPDATE workouts SET '.concat('name="', newName, '", reps="',newReps, '", weight="' ,newWeight,'", date="',newDate,'", lbs="', newLbs, '" WHERE id="',req.query.id,'";');
 		console.log("change is ", change);
 		pool.query(change, function (err,rows,fields)
 		{
@@ -154,13 +152,11 @@ router.get("/addExercise",function(req,res){
 	var newReps = req.query.reps;
 	var newWeight = req.query.weight;
 	var newDate = req.query.date;
-	var useslbs = req.query.lbs;
-	var lbs = 'true';
-	if ( useslbs == 0 ) { lbs='false'; }
+	var newLbs = req.query.lbs;
 	//
-	change='INSERT INTO workouts (name, reps,weight,date,lbs ) VALUES ("'.concat(newName, '", "' , newReps , '", "' , newWeight , '", "' , newDate , '", "' , lbs , '");');
+	change='INSERT INTO workouts (name, reps,weight,date,lbs ) VALUES ("'.concat(newName, '", "' , newReps , '", "' , newWeight , '", "' , newDate , '", "' , newLbs , '");');
 	console.log ("New item entered");
-	console.log(newName, newReps, newWeight, newDate, lbs);
+	console.log(newName, newReps, newWeight, newDate, newLbs);
 	console.log("change is ", change);
 
 	if (change ) {
