@@ -1,0 +1,15 @@
+<h1>POST request received</h1>
+<ul>
+
+	{{#if urlData}}
+	<h1>URL query</h1>
+	{{/if}}
+  {{#each urlData}}
+    <li>{{this.name}}: {{this.value}}
+  {{/each}}
+
+	<h1>Form data:</h1>
+  {{#each dataList}}
+    <li>{{this.name}}: {{this.value}}
+  {{/each}}
+</ul>
