@@ -43,7 +43,7 @@
 						<input class="col-sm-2" type="number" min="0" name="weight" id="weightEntered">
 						<input class="col-sm-2" type="date" name="date" id="dateEntered">
         	<div class="col-sm-4"> 
-						<input type="radio" name="kilos" value="1" id="kilosChecked" style="margin-right:30px">
+						<input type="checkbox" name="kilos" value="1" id="kilosChecked" style="margin-right:30px">
 						<!-- <input type="submit" id="newExercise" name="newExercise" value="Add Exercise"> -->
 						<button type="button" id="addExercise" name="addExercise" value="addExercise">Add Exercise</button>
 						<input type="reset" value="Clear">
@@ -79,23 +79,31 @@
 			<div id = "exerciseHistory"> <!-- history section -->
 			{{#each results}}
       <div class="row" id="dataRow{{this.id}}">
-        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.name}} </div>
-        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.reps}} </div>
-				<div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.weight}}
+				<div id="dataFields{{this.id}}">
+        <div class="col-sm-2" style="border-style:solid;border-width:thin" id="name{{this.id}}"> {{this.name}} </div>
+        <div class="col-sm-2" style="border-style:solid;border-width:thin" id="reps{{this.id}}"> {{this.reps}} </div>
+				<div class="col-sm-2" style="border-style:solid;border-width:thin" id="weight{{this.id}}"> {{this.weight}}
 					{{#if this.lbs}}
 					lbs
 					{{else}}
 					kg
 					{{/if}}
 				</div>
-        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.date}}</div>
-        <div class="col-sm-4">
-					<input type="hidden" name=rowKey value="dataRow{{this.id}}"> 
+        <div class="col-sm-2" style="border-style:solid;border-width:thin" id="date{{this.id}}"> {{this.date}}</div>
+				<input type="checkbox" name="kilos" value="1" id="kilosChecked{{this.id}}" style="display:none">
+				<script>	
+					if ( "{{this.lbs}}" != 1 )  {document.getElementById("kilosChecked{{this.id}}").checked = "checked";}
+				</script>
+				</div><!-- dataFields -->
+        <div class="col-sm-4" id="dataButtons{{this.id}}">
+					<!-- <input type="hidden" name=rowKey value="dataRow{{this.id}}">  -->
 					<button type="button" id="edit{{this.id}}" name="editButton" value={{this.id}}>Edit</button>
 					<button type="button" id="remove{{this.id}}" name="removeButton" value={{this.id}}>Delete</button>
 					<script>	
-						document.getElementById("edit{{this.id}}").addEventListener('click', function() {
-							clientEditRow(
+						document.getElementById("edit{{this.id}}").addEventListener('click', 
+							//edit{{this.id}} =function() {clientEditRow(
+							clientEditRow.bind(
+								null,
 								location,
 								"dataRow{{this.id}}",
 								{
@@ -105,7 +113,7 @@
 									'weight':"{{this.weight}}", 
 									'lbs':"{{this.lbs}}", 
 									'date':"{{this.date}}"})
-								}, false);
+								, false);
 
 						document.getElementById("remove{{this.id}}").addEventListener('click', function() {
 							clientDeleteRow(
@@ -113,7 +121,7 @@
 								"dataRow{{this.id}}",
 								"{{this.id}}")}, false);
 						</script>
-				</div><!-- buttons -->
+				</div><!-- dataButtons -->
 			</div> <!-- row -->
 			{{/each}}
 			</div> <!-- history -->
