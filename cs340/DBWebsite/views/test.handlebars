@@ -1,0 +1,18 @@
+<h1>Handlebars Test</h1>
+   <h2>Are you getting handlebars data?</h2>
+		{{handlebars}}
+   <h2>Are you getting mysql data?</h2>
+		{{textresults}}
+
+   <h2>Can you parse mysql data?</h2>
+		<table>
+		{{#each results}}
+		<tr>
+			<td>{{this.name}} </td>
+			<td>{{this.reps}} </td>
+			<td>{{this.weight}} </td>
+			<td>{{this.date}} </td>
+			<td>{{this.lbs}} </td>
+		</tr>
+		{{/each}}
+		</table>

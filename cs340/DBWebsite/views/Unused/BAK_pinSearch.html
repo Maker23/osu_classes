@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script src="script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<link rel="stylesheet" href="/jumbotron.css">
+	<title>Pinterest Pin Search</title>
+</head>
+<body>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron" style="background-color:#f00;color:#fff">
+      <div class="container">
+        <h1>Using the API to search for Pins</h1>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-4">
+          <h2>Testing Pin Search:</h2>
+					<p>
+					Pinterest searches are text based.  Pin titles and descriptions
+					will be searched for text that matches your search terms.
+					</p>
+
+					<script src="/pinSearch.js"></script>
+					<form>
+						<fieldset>
+						<legend>Pin Search</legend>
+						<label for="searchTerms">Enter a string to search for:</label>
+						<input type="text" name="searchTerms" id="textEntered">
+						<input type="submit" id="dataSubmit" Value="Search!">
+						</fieldset>
+					</form>
+					<div id="searchResult"></div>
+        </div>
+        <div class="col-md-4">
+          <h2>Searching pins</h2>
+          <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, 
+					tellus ac cursus commodo, tortor mauris condimentum nibh, ut 
+					fermentum massa justo sit amet risus. Etiam porta sem malesuada 
+					magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn btn-default" href="site/pinSearching.html" role="button">View details &raquo;</a></p>
+        </div>
+        <div class="col-md-4">
+          <h2>Searching boards</h2>
+          <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, 
+					tellus ac cursus commodo, tortor mauris condimentum nibh, ut 
+					fermentum massa justo sit amet risus. Etiam porta sem malesuada 
+					magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn btn-default" href="site/boardSearching.html" role="button">View details &raquo;</a></p>
+       </div>
+      </div>
+
+      <hr>
+
+      <footer>
+        <p>&copy; 2017 abrasss@oregonstate.edu</p>
+      </footer>
+    </div> <!-- /container -->
+</body>
+</html>

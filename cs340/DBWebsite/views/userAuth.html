@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script src="script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<link rel="stylesheet" href="/jumbotron.css">
+	<title>Getting a user's Pinterest authentication</title>
+</head>
+<body>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron" style="background-color:#f00;color:#fff">
+      <div class="container">
+				<table> 
+				<tr>
+				<td width='30%'><a style="color:#fff" href="/"><b>Main page</b></a></td>
+				<td width='30%'><a style="color:#fff" href="/site/userAuth.html"><b>User authentication</b></a></td>
+				<td width='30%'><a style="color:#fff" href="/site/pinSearch.html"><b>Searching pins and boards</b></a></td>
+				</table>
+        <h1>Getting a user's Pinterest authentication</h1>
+        <p>
+				</p>
+      </div>
+    </div>
+
+    <div class="container">
+		<ol>
+      <!-- Example row of columns -->
+      <div class="row">
+        <h2>Overview</h2>
+          <p>Pinterest API calls need to be made on behalf of a
+					Pinterest user, so the first thing you need to do is
+					get your website user to establish their Pinterest credentials. 
+          <p>
+					Pinterest uses oAuth 2.0 to authenticate requests from third party
+					sites. Requests are sent as POSTS when data is being modified
+					and as GETs when data is only being read.
+					<p>
+					Although the API itself is quite simple, getting the client set up
+					correctly to work with Pinterest's authentication was complicated.
+					I go into it in some detail below.
+			</div>
+				<h3>Getting oAuth working</h3>
+        <div class="col-xl-4">
+				In theory, oAuth is simple to use, but in practice it can be difficult
+				to manage for someone who's new to client-side coding.  oAuth depends
+				on tokens that are generated once and then sent with each request.
+				<a href="https://aaronparecki.com/oauth-2-simplified/">This overview</a>
+				is an excellent refernce to getting oAuth working.
+				<p>
+				Unfortunately I wasn't able to do everything I wanted. JS closures
+				are sufficient for token handling within a single page, but keeping
+				a token alive as a user navigates through your site requires 
+				persistent token storage. There is probably some way to store the
+				token in a more persistent way that lasts beyond a page
+				reload, but I wasn't able to discover one during my research.
+				<p>
+				As a result, although the Pinterest authorization will last through 
+				multiple operations on the <a href="/site/pinSearch.html">Searching Pins and Boards</a>
+				page, once the user navigates away from that page the token is lost
+				and needs to be regenerated.
+				</div>
+
+			<div class="row" id="PinAuth">			
+				<h2><li>Set your web server up for HTTPS</h2>
+				<h3>Generate a public and private SSL key</h3>
+        <div class="col-xl-4">
+				This is the procedure for generating a privately-signed SSL key, which 
+				you can use for testing.  To support trusted encryption you'll want to
+				get an SSL key from a Certificate Authority (CA). CA's often charge
+				a fee for this service. For example, here is <a href='https://www.websecurity.symantec.com/ssl-certificate?om_sem_cid=ws_sem_search|183506567681|%2Bssl%20%2Bcertificated|b|c|&sl=ZEFFZ-0000-01-00&gclid=Cj0KEQiAxeTFBRCGmIq_7rGt_r8BEiQANdPqUur_3i1PBrg6wl2uJ4IZUKRI-0z4B2vBfEBwfT2HejoaAveO8P8HAQ'>Symantec's</a> purchasing page.
+				<p><br></p>
+				The steps below will leave you with two files, cert.pem (the certificate) and 
+				key.pem (the private key)
+				<pre>
+openssl genrsa -out key.pem
+openssl req -new -key key.pem -out csr.pem
+openssl x509 -req -days 9999 -in csr.pem -signkey key.pem -out cert.pem
+rm csr.pem
+				</pre>
+				<p>
+				</div>
+				<h3>Add HTTP support to your Server.js file</h3>
+        <div class="col-xl-4">
+				<p>
+				These code snippets demonstrate how to add HTTP support to a Node/Express Server.js file.
+				<pre>
+// Options tell the SSL layer where to find your key and cert files
+var options = {
+  key: fs.readFileSync("keys/key.pem"),
+  cert: fs.readFileSync("keys/cert.pem")
+};
+
+// Set up 'app' as a standard (unencrypted) express web server on port 80
+var app = express();
+app.use("/",router);
+app.listen(80, function() {
+  console.log("Listening at Port 80");
+});
+
+// Now add an encrypted port to app, using the key files
+var appSecure = https.createServer(options, app).listen(443);
+				</pre>
+        </div>
+      </div>
+				
+
+			<div class="row" id="PinAuth">			
+				<h2><li>Create a Pinterest App</h2>
+				<p> 
+				<div class="col-xl-4">
+				<h3>Go to <a href="https://developers.pinterest.com">https://developers.pinterest.com</a> </h3>
+				to set up a new app. This will grant you an <strong>AppID</strong> 
+				and an <strong>App secret</strong> that you will use in your API calls.
+				Make a note of your AppID.
+				<p>
+				You'll need to create a Pinterest login before you can set up an app,
+				if you don't already have one. 
+				</p>
+				</div>
+				<div class="col-xl-4">
+				<h3>Add your Pinterest-API-calling website to your App configuration</h3>
+				Choose a page on your local website that you'll redirect users to after they 
+				authenticate with Pinterest, and add this page to the list of valid 
+				<strong>Redirect URLs</strong> for your Pinterst app.  Make sure to end
+				your URL with a "/". <strong>Note that you must use https targets as your 
+				redirects</strong>.
+				</div>
+        <div class="col-xl-4">
+        <h3>Authenticating Users</h3>
+          <p>
+					oAuth is a two-step process.  In the first step your application 
+					or web site will sent a GET request to Pinterest, containing 
+					your public AppID. With this request you will redirect the user 
+					to a Pinterest login screen where they will enter their Pinterest 
+					login information; if they're successful, Pinterest will return 
+					a temporary authorization code.
+					<p>
+					<p>
+					In the second step your app or site uses the temporary authorization
+					to send a POST request to Pinterest. This request contains your AppID, the
+					authorization code from step&nbsp;1, and your <strong>App secret</strong>.
+					<p>
+					The response from step&nbsp;2 is an <strong>access token</strong> that 
+					can be re-used for many user requests.  Access tokens are theoretically
+					time-limited, but Pinterest (and many other sites) set the timeout to
+					a very high number. In effect the user will remain authenticated as long
+					as they're using your site.
+          <p><a class="btn btn-default" href="https://developers.pinterest.com/docs/api/overview/" role="button">Read more &raquo;</a></p>
+        </div>
+			</div>
+			<div class="row" id="PinAuth">			
+        <h2><li>Let's try it out!</h2>
+        <div class="col-md-8">
+				<h3>oAuth Step 1</h3>
+				<p>
+				<span id="myCode">Click here</span> to use my AppID to bring up a user authentication
+				screen from Pinterest. Remember this is only <strong>step&nbsp;1</strong> of the 
+				oAuth process. Use the JSFiddle below to test the AppID you got to do the
+				same thing.  Note that the auth request is sent as an HTTP GET, with all of the
+				information in the URL.
+				</p>
+				</div>
+				<script async>
+				var ThisSite="https://ec2-50-112-191-239.us-west-2.compute.amazonaws.com/site/pinSearch.html"
+				var AuthKey="4885666555337124863"
+				var URL = "https://api.pinterest.com/oauth/?response_type=code&redirect_uri=" + ThisSite + "&client_id=" + AuthKey + "&scope=read_public,write_public&state=nada"
+				var Anchor = '<a href="' + URL +'">Click here</a>';
+				console.log(URL);
+				document.getElementById('myCode').innerHTML = Anchor;
+				</script>
+			</div>
+			<div class="row">			
+				<script async src="//jsfiddle.net/abrasss/6fkupgc5/embed/js,html,result/"></script>	
+			</div>
+        <div class="col-md-8">
+        <h3>oAuth Step 2</h3>
+				<p>Obviously you won't be able to test this code in jsfiddle, since you need
+				your App secret and a valid authentication token from <strong>Step&nbsp;1</strong>
+				</div>
+			<div class="row" id="PinAuth">			
+				<script async src="//jsfiddle.net/abrasss/bwm6o51d/embed/js/"></script>
+			</div>
+		</ol>
+
+      <hr>
+
+      <footer>
+        <p>&copy; 2017 abrasss@oregonstate.edu</p>
+      </footer>
+    </div> <!-- /container -->
+</body>
+</htm8>

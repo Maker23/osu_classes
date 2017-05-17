@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<title>abrasss@ Homework CS340-400-Spring17</title>
+</head>
+<body>
+
+	<div class="container" style="background-color:blue; color:white">
+       <h1>Hello World CS340</h1>
+       <p>
+				Assignment 1
+       <p>
+				Written for CS340-400, Spring 2017
+			</p>
+  </div>
+	<p>
+
+		<!-- Top section: add a new exercise -->
+    <div class="container"> 
+    </div>
+
+
+		<!-- Listing of BSG people -->
+    <div class="container" id="people_list">
+      <div class="row">
+        <h2>BSG People</h2>
+			</div>
+			
+			<div id = "bsg_people"> <!-- bsg_people -->
+      <div class="row">
+        	<div class="col-sm-2" style="font-weight:bold"> Last Name</div>
+        	<div class="col-sm-2" style="font-weight:bold"> First Name</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Homeworld</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Age</div>
+			</div>
+
+			{{#each results}}
+
+      	<div class="row" id="peopleRow{{this.people_id}}">
+					<div id="people_dataFields{{this.people_id}}">
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_fname{{this.people_id}}">{{this.fname}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_lname{{this.people_id}}"> {{this.lname}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_homeworld{{this.people_id}}"> {{this.homeworld}} </div>
+					<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_age{{this.people_id}}"> {{this.age}} </div>
+					</div><!-- dataFields -->
+				</div> <!-- /row -->
+
+			{{/each}}
+
+			</div> <!-- /bsg_people -->
+    </div> <!-- /people_list -->
+
+		<!-- Listing of BSG planets -->
+<!--
+    <div class="container" id="planet_list">
+      <div class="row">
+        <h2>BSG Planets</h2>
+			</div>
+			
+-->
+			<div id = "bsg_planet"> <!-- bsg_planet -->
+
+			{{#each results}}
+
+<!--
+      	<div class="row" id="planetRow{{this.id}}">
+					<div id="planet_dataFields{{this.id}}">
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_name{{this.id}}"> {{this.name}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_population{{this.id}}"> {{this.population}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_language{{this.id}}"> {{this.language}} </div>
+					<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_capital{{this.id}}"> {{this.capital}} </div>
+-->
+					</div><!-- dataFields -->
+				</div> <!-- /row -->
+
+			{{/each}}
+
+			</div> <!-- /bsg_planet -->
+    </div> <!-- /planet_list -->
+
+    <hr>
+    <footer>
+      <p>&copy; 2017 abrasss@oregonstate.edu</p>
+    </footer>
+</body>
+</html>

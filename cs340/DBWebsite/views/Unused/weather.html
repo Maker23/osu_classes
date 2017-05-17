@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>abrasss@ Homework Assignment: Ajax Interactions. CS290-400-W17</title>
+	<!-- <link rel="stylesheet" href="style.css" type="text/css"> -->
+	<!-- For this assignment, style commands are embedded in the element definitions -->
+</head>
+<body>
+
+<script src="script.js"></script>
+<form style="background-color:white; width:420px">
+	<fieldset>
+		<legend> Weather Finder</legend>
+		<label for="location">Enter a location to lookup the weather<br>Use City,ST or zip code:</label>
+		<input type="text" name="location" id="locationEntered">
+		<input type="submit" id="dataSubmit" Value="Go">
+	</fieldset>
+</form>
+
+<div>
+	<h3><span id="location"> </span></h3>
+	<!-- <script>document.getElementById("location").textContent = "your location"</script> Default -->
+	<span id = "weather"> </span>
+</div>
+
+<form style="margin-top:4em">
+	<fieldset>
+		<legend>httpbin POST tester</legend>
+		Your name:
+		<input type="text" name="nameText" id="nameText">
+		<p>
+		Your favorite color family:
+		<input type="radio" name="radio1" value="Red">Reds
+		<input type="radio" name="radio1" value="Green">Greens
+		<input type="radio" name="radio1" value="Blue">Blues
+		<p>
+		<input type="submit" id="httpBinSubmit" Value="Submit">
+	</fieldset>
+	<span style="margin-top:2em" id="httpBinResponse"></span>
+</form>
+
+
+</body>
+</html>

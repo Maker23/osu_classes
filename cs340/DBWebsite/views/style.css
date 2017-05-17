@@ -1,0 +1,45 @@
+p {
+}
+table, td, th {
+	border-collapse: collapse;
+	border-style: solid;
+	border-width: thin;
+}
+td, th {
+	border-style: solid;
+	border-width: thin;
+	padding: 0.25em;
+}
+
+
+tbody th {
+	font-weight:normal;
+	font-style:italic;
+}
+
+tbody tr:nth-child(even){
+	background-color: #d9f2e6;
+}
+
+tbody tr:nth-child(odd){
+	background-color: #ddddff;
+}
+
+#outer-content {
+	margin-top:20px;
+	padding-top:10px;
+	padding-bottom:10px;
+	width:75%;
+	background-color:pink;
+	width:75pct;
+}
+
+#inner-content{
+	width:75%;
+	margin:auto;
+	text-align:center;
+	background-color:lightblue;
+}
+
+
+
