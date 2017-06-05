@@ -1,37 +1,27 @@
 /* ************************************************ */
-function clientAddExercise(baseURL, elementID, item) {
+function clientSearchBooks(baseURL, item) {
 	console.log ("*** In clientAddExercise");
-	console.log ("    elementID: ", elementID);
+	console.log ("    baseURL: ", baseURL);
+	//console.log ("    elementID: ", elementID);
 	console.log ("    Item: ", item);
 
 	// Integrity check of the data
-	if ( item.name == "" || ! item.name ) { 
-		window.alert("Error: Exercise name cannot be empty");
+	if (	( item.title == "" || ! item.title )
+			&&( item.author == "" || ! item.author )
+			&&( item.location == "" || ! item.location )
+			&&( item.character == "" || ! item.character ))
+ { 
+		window.alert("Error: No search terms were entered. Enter at least one of Title, Author, Location, or Character. To view the entire database use 'List All Books'");
 		return;
 	}
-	if ( Number(item.reps) < 1 ) { 
-		window.alert("Error: Exercise reps must be 1 or greater");
-		return;
-	}
-	if ( item.weight == "" ||  Number(item.weight) < 0 ) { 
-		window.alert("Error: Exercise weight must be 0 or greater");
-		return;
-	}
-	if ( item.date == "" || ! item.date ) { 
-		window.alert("Error: Exercise date must be set");
-		return;
-	}
-	if ( item.kilos == false ) 
-		{ item['lbs'] = 1; }
-	else{ item['lbs'] = 0; }
-	//delete item.kilos;
 
 	// Set up the connection to the server
-	var command = 'addExercise';
+	var command = 'SearchInBooks';
 	var protocol = "http://";
 	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
 	else { hostPort = protocol.concat(baseURL.hostname); }
-	var URL = hostPort.concat(baseURL.pathname, command);
+	//var URL = hostPort.concat(baseURL.pathname, command);
+	var URL = hostPort.concat('/',command);
 	console.log("URL=", URL);
 	var connection = new XMLHttpRequest();
 	var sendString = URL;
@@ -49,6 +39,11 @@ function clientAddExercise(baseURL, elementID, item) {
 	}
 	console.log("Opening get request with:", sendString);
 
+	// TODO: Break this into two parts.  
+	// 1. Get Book list (or char list, or location list)
+	// 2. Return full results
+	// ... or do that in the SQL query ?
+
 	// Open the connection and send the request
 	connection.open("GET", sendString);
 	connection.send(null);
@@ -61,26 +56,64 @@ function clientAddExercise(baseURL, elementID, item) {
 		
 			// Get the new item ID from the database update
 			var response = JSON.parse(connection.responseText);
-			if ( ! response.insertId ){
+			console.log ("Response: ", response)
+			if ( ! response.results[0].bookID ){
 				window.alert ("Unknown database error:", connection.responseText);
 				return;
 			}
-			// Create a new HTML element with that ID, with class='row'
-			var dataRow = "dataRow" + response.insertId;
-			var dataFields = "dataFields" + response.insertId;
-			newRow = document.createElement("div");
-			newRow.id = dataRow;
-			newRow.className = "row";
-			newFields = document.createElement("div");
-			newFields.id = dataFields;
-			newRow.appendChild(newFields);
-			// Prepend the new (empty) row to the existing element
-			var parentElement = document.getElementById(elementID);
-			parentElement.insertBefore(newRow,parentElement.childNodes[0]);
-			// Fill the row with data 
-			clientGetItem(baseURL, dataRow, response.insertId);
-			// Reset the entry form so boxes are empty
-			document.getElementById('entryForm').reset();
+			/// TODO TURN this whole thing into a TABLE, then maybe with clickable text?
+			//  Maybe have a 'create table' subroutine....
+			
+			var ResultColumns = {
+				'bookTitle':'Title',
+				'authorName':'Author',
+				'bookCity':'Primary Location',
+				'Characters':'Characters'
+			};
+
+			var parentElement = document.getElementById('ResultsGoHere');
+			parentElement.innerHTML = "";
+			var table = document.createElement("table");	
+			table.id = 'ResultsTable';
+			parentElement.append(table);
+			var cell = null; // declare a local variable
+			var newRow = null;
+
+			newRow = document.createElement("tr");
+			Object.keys(ResultColumns).forEach(function(value,key)
+			{
+					cell = document.createElement("th");
+					cell.className='borderth';
+					cell.textContent = ResultColumns[value];
+					newRow.append(cell);
+			});
+			table.append(newRow);
+
+			console.log("response.results is:", response.results);
+			response.results.forEach(function (line,index)
+				{
+					var newText="";
+					console.log("In loop, item is:", line);
+					console.log("line.bookTitle is:", line.bookTitle);
+					// var dataRow = "dataRow" + line.id;
+					newRow = document.createElement("tr");
+					newRow.id = 'row'.concat(line.bookID); 
+
+					Object.keys(ResultColumns).forEach(function(value,key)
+					{
+						cell = document.createElement("td");
+						cell.className='bordertd';
+						cell.textContent = line[value];
+						newRow.append(cell);
+					});
+					
+					//newText = newText.concat(line.title, line.genre, line.publication_date);
+					//newRow.textContent = newText;
+					console.log("Should have set text to:", newText);
+					//parentElement.insertBefore(newRow,parentElement.childNodes[0]);
+					table.append(newRow);
+					document.getElementById(newRow.id).style.border="1px solid black";
+				});
 			return;	
 		}
 		else {

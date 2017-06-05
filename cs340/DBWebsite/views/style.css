@@ -1,15 +1,20 @@
 p {
 }
-table, td, th {
+
+.bordertable, .bordertd, .borderth {
 	border-collapse: collapse;
 	border-style: solid;
 	border-width: thin;
+	padding: 0.25em;
 }
+
+/*
 td, th {
 	border-style: solid;
 	border-width: thin;
 	padding: 0.25em;
 }
+*/
 
 
 tbody th {
@@ -17,6 +22,7 @@ tbody th {
 	font-style:italic;
 }
 
+/*
 tbody tr:nth-child(even){
 	background-color: #d9f2e6;
 }
@@ -40,6 +46,7 @@ tbody tr:nth-child(odd){
 	text-align:center;
 	background-color:lightblue;
 }
+*/
 
 
 

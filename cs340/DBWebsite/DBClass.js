@@ -11,11 +11,32 @@ var handlebars = require("express-handlebars").create({defaultLayout:'main'});
 var bodyParser = require("body-parser");
 
 var mysql=require('mysql');
-var pool = mysql.createPool({
+var litpool = mysql.createPool({
 	host : 'localhost',
 	user : 'ec2-user',
-	database : 'cs340'
+	database : 'lit'
 });
+var bsgpool = mysql.createPool({
+	host : 'localhost',
+	user : 'ec2-user',
+	database : 'bsg'
+});
+
+var litJoin = `(SELECT 
+	O.id as bookID, O.title as bookTitle, O.genre, O.publication_date, 
+	concat_ws (' ',A.title, A.fname, A.mnames,A.lname) as authorName, 
+	M.description,M.date, 
+	L.address, L.street,L.city, L.country,
+	concat_ws (', ',L.city, L.country) as bookCity,
+	concat_ws (' ', K.title,K.fname,K.lname) as characterName 
+	from opus O 
+	inner join opus_author OA on O.id = OA.oid 
+	inner join author A on A.id = OA.aid 
+	inner join (select * from moment where description='PRIMARY') M on O.id = M.oid 
+	inner join location L on M.lid = L.id 
+	inner join karacter_moment KM on M.id = KM.mid 
+	inner join karacter K on K.id = KM.kid 
+	)`;
 
 var app = express();
 var router = express.Router();
@@ -37,10 +58,30 @@ router.get("/index.html",function(req,res){
 	//res.sendFile(site + "index.html");
 });
 
-router.get("/",function(req,res,next){
+router.get("/lit",function(req,res,next){
 	var context = {};
 
-	pool.query("SELECT id AS people_id,fname,lname,IFNULL(homeworld,'unknown') as homeworld,IFNULL(age,'unknown') as age FROM bsg_people ORDER BY lname,fname ASC;", 
+	// Looking for: title, author, pubyear, location
+	bsgpool.query("SELECT id AS people_id,fname,lname,IFNULL(homeworld,'unknown') as homeworld,IFNULL(age,'unknown') as age FROM bsg_people ORDER BY lname,fname ASC;", 
+	function (err,rows,fields)
+	{
+		if (err) {
+			console.log(err);
+			next(err);
+			return;
+		}
+		context.textresults = JSON.stringify(rows);
+		context.results = JSON.parse(context.textresults);
+		context.history = context["results"].length;
+		res.render(site + "home.handlebars", context);
+		//console.log(context);
+	});
+});
+
+router.get("/bsg",function(req,res,next){
+	var context = {};
+
+	bsgpool.query("SELECT id AS people_id,fname,lname,IFNULL(homeworld,'unknown') as homeworld,IFNULL(age,'unknown') as age FROM bsg_people ORDER BY lname,fname ASC;", 
 	function (err,rows,fields)
 	{
 		if (err) {
@@ -50,7 +91,7 @@ router.get("/",function(req,res,next){
 		context.textresults = JSON.stringify(rows);
 		context.results = JSON.parse(context.textresults);
 		context.history = context["results"].length;
-		res.render(site + "home.handlebars", context);
+		res.render(site + "bsg.handlebars", context);
 		//console.log(context);
 	});
 });
@@ -140,6 +181,77 @@ router.get("/getitem",function(req,res){
 					.send(rows);
 			}
 		});
+	}
+});
+
+router.get("/SearchInBooks",function(req,res){
+	var context = {}
+	var DBquery = null;
+	var addAnd = false;
+
+	//console.log("Req.query: ", req.query);
+	var searchTitle = req.query.title;
+	var searchAuthor = req.query.author;
+	var searchLocation = req.query.location;
+	var searchCharacter = req.query.character;
+	//
+	var DBquery='SELECT * FROM (SELECT dbjoin.bookID, dbjoin.bookTitle, dbjoin.authorName, dbjoin.bookCity, group_concat(dbjoin.characterName) as Characters FROM '; 
+	DBquery = DBquery.concat(litJoin, ' dbjoin GROUP BY bookID) allFields')
+	DBquery = DBquery.concat(' WHERE')
+
+	if ( ! (searchTitle || searchAuthor||searchLocation||searchCharacter )) 
+	{ 
+				console.log("Error: No search terms found in SearchInBooks request");
+				return;
+	}
+	if ( searchTitle ) 
+	{ 
+		DBquery = DBquery.concat(' bookTitle like "%',searchTitle,'%"'); 
+		addAnd = true;
+	}
+	if ( searchAuthor ) 
+	{ 
+		if (addAnd) {DBquery = DBquery.concat(' AND ');}
+		DBquery = DBquery.concat(' authorName like "%',searchAuthor,'%"'); 
+		addAnd = true;
+	}
+	if ( searchLocation ) 
+	{ 
+		if (addAnd) {DBquery = DBquery.concat(' AND ');}
+		DBquery = DBquery.concat(' bookCity like "%',searchLocation,'%"'); 
+		addAnd = true;
+	}
+	if ( searchCharacter ) 
+	{ 
+		if (addAnd) {DBquery = DBquery.concat(' AND ');}
+		DBquery = DBquery.concat(' Characters like "%',searchCharacter,'%"'); 
+		addAnd = true;
+	}
+	//DBquery = DBquery.concat('GROUP BY bookID');
+	DBquery = DBquery.concat(';');
+	
+	console.log ("Running SearchInBook");
+	console.log(searchTitle, searchAuthor, searchLocation,searchCharacter);
+	console.log("Query is: ", DBquery);
+
+	if (DBquery ) {
+		litpool.query(DBquery, function (err,rows,fields)
+		{
+			if (err) {
+				//next(err);
+				console.log(err);
+				return;
+			}
+			context.textresults = JSON.stringify(rows);
+			context.results = JSON.parse(context.textresults);
+			console.log("mySQL returned: ", context);
+			//res.render(site + "searchResults.handlebars", context);
+			res.status(200).send(context)
+			//res.send(site + "searchResults.handlebars", context);
+		});
+		//TODO: eliminate the need to render the entire page
+		//use res.send
+		//return;
 	}
 });
 
@@ -273,6 +385,9 @@ router.get("/script.js",function(req,res){
 	res.sendFile(site + "script.js");
 });
 
+router.get("/style.css",function(req,res){
+	res.sendFile(site + "style.css");
+});
 router.get("/bootstrap.min.css",function(req,res){
 	res.sendFile(bsdir + "node_modules/bootstrap/dist/css/bootstrap.min.css");
 });

@@ -10,83 +10,96 @@
 	<script type="text/javascript" src="/script.js"></script>
 
 	<link rel="stylesheet" href="/bootstrap.min.css">
+	<link rel="stylesheet" href="/style.css">
 	<title>abrasss@ Homework CS340-400-Spring17</title>
 </head>
 <body>
 
 	<div class="container" style="background-color:blue; color:white">
-       <h1>Hello World CS340</h1>
-       <p>
-				Assignment 1
-       <p>
-				Written for CS340-400, Spring 2017
-			</p>
-  </div>
+       <h1>Literary Location database</h1>
+       <p> Written for CS340-400, Spring 2017 </p>
+       <p> abrasss@ </p>
+  </div> <!-- container -->
 	<p>
 
-		<!-- Top section: add a new exercise -->
     <div class="container"> 
-    </div>
+		<!-- Top Left: Search the book database -->
+		<div class="row" style="margin-top:30px">
+			<div class="col-sm-4"> 
+				<form id="searchForm" method="get">
+					<button style="border-color:lightblue;background-color:blue;color:white;font-size:large" type="button" id="searchButton" name="searchButton" value="searchButton">Search in books</button>
+					<table style="border:none;margin-top:5px">
+					<tr><th>Title</th><td> <input type="text" name="Title" id="bookSearchTitle"></td>
+					<tr><th>Author </th><td><input type="text" name="Author" id="bookSearchAuthor"></td>
+					<tr><th>Location </th><td><input type="text" name="Location" id="bookSearchLocation"></td>
+					<tr><th>Character </th><td><input type="text" name="Character" id="bookSearchCharacter"></td>
+					</table>
+				</form>
+			</div>
+			<!-- Script for handling the book search button -->
+ 			<script>
+				document.getElementById('searchButton').addEventListener('click', function() {
+					clientSearchBooks(
+						location,
+						{
+							'title': document.getElementById('bookSearchTitle').value,
+							'author': document.getElementById('bookSearchAuthor').value,
+							'location': document.getElementById('bookSearchLocation').value,
+							'character': document.getElementById('bookSearchCharacter').value})
+						}, false);
+			</script>
+			
+		<!-- Top Right: add a new literary work -->
+			<div class="col-sm-4"> 
+				<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" type="button" id="addBookButton" name="addBookButton" value="addBookButton">Add a book</button>
+			</div>
+  	</div> <!-- row -->
+		<div class="row" style="margin-top:30px">
+			<div class="col-sm-4"> 
+					<button style="border-color:lightblue;background-color:blue;color:white;font-size:large" type="button" id="listButton" name="listButton" value="listButton">List all books</button>
+			</div> 
+			<div class="col-sm-4"> 
+				<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" type="button" id="addLocationButton" name="addLocationButton" value="addLocationButton">Add a location to a book</button>
+			</div>
+  	</div> <!-- row -->
+
+  	</div> <!-- container -->
 
 
-		<!-- Listing of BSG people -->
-    <div class="container" id="people_list">
+		<!-- Listing of literary works -->
+    <div class="container" id="book_list">
       <div class="row">
-        <h2>BSG People</h2>
+        <h2>Search results</h2>
 			</div>
 			
-			<div id = "bsg_people"> <!-- bsg_people -->
+			<div id = "book_summary"> <!-- book_summary -->
       <div class="row">
-        	<div class="col-sm-2" style="font-weight:bold"> Last Name</div>
-        	<div class="col-sm-2" style="font-weight:bold"> First Name</div>
-        	<div class="col-sm-2" style="font-weight:bold"> Homeworld</div>
-        	<div class="col-sm-2" style="font-weight:bold"> Age</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Title</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Author</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Pub. year</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Primary Location</div>
 			</div>
 
 			{{#each results}}
 
-      	<div class="row" id="peopleRow{{this.people_id}}">
-					<div id="people_dataFields{{this.people_id}}">
-        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_fname{{this.people_id}}">{{this.fname}} </div>
-        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_lname{{this.people_id}}"> {{this.lname}} </div>
-        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_homeworld{{this.people_id}}"> {{this.homeworld}} </div>
-					<div class="col-sm-2" style="border-style:solid;border-width:thin" id="people_age{{this.people_id}}"> {{this.age}} </div>
+      	<div class="row" id="bookRow{{this.opus_id}}">
+					<div id="book_dataFields{{this.opus_id}}">
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_title{{this.opus_id}}">{{this.title}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_author{{this.opus_id}}"> {{this.author}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_pubyear{{this.opus_id}}"> {{this.pubyear}} </div>
+					<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_location{{this.opus_id}}"> {{this.location}} </div>
 					</div><!-- dataFields -->
 				</div> <!-- /row -->
 
 			{{/each}}
 
-			</div> <!-- /bsg_people -->
-    </div> <!-- /people_list -->
+			</div> <!-- /book_summary -->
+    </div> <!-- /book_list -->
 
-		<!-- Listing of BSG planets -->
-<!--
-    <div class="container" id="planet_list">
-      <div class="row">
-        <h2>BSG Planets</h2>
-			</div>
-			
--->
-			<div id = "bsg_planet"> <!-- bsg_planet -->
 
-			{{#each results}}
-
-<!--
-      	<div class="row" id="planetRow{{this.id}}">
-					<div id="planet_dataFields{{this.id}}">
-        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_name{{this.id}}"> {{this.name}} </div>
-        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_population{{this.id}}"> {{this.population}} </div>
-        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_language{{this.id}}"> {{this.language}} </div>
-					<div class="col-sm-2" style="border-style:solid;border-width:thin" id="planet_capital{{this.id}}"> {{this.capital}} </div>
--->
-					</div><!-- dataFields -->
-				</div> <!-- /row -->
-
-			{{/each}}
-
-			</div> <!-- /bsg_planet -->
-    </div> <!-- /planet_list -->
-
+    <hr>
+		<div class="container" id="ResultsGoHere">
+		</div>
     <hr>
     <footer>
       <p>&copy; 2017 abrasss@oregonstate.edu</p>
