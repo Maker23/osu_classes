@@ -22,12 +22,24 @@ var bsgpool = mysql.createPool({
 	database : 'bsg'
 });
 
-var litJoin = `(SELECT 
+// 
+// litJoinOne selects PRIMARY MOMENTS ONLY 
+// and produces the following columns:
+// 	bookID, bookTitle, O.genre, O.publication_date,
+// 	authorName,
+// 	M.description, M.date,
+// 	L.address, L.street, L.city, L.country,
+// 	bookCity, ## probably redundant now
+// 	bookLocation
+// 	characterName
+// If you want to see all moments, use litJoinTwo
+var litJoinOne = `(SELECT 
 	O.id as bookID, O.title as bookTitle, O.genre, O.publication_date, 
 	concat_ws (' ',A.title, A.fname, A.mnames,A.lname) as authorName, 
 	M.description,M.date, 
 	L.address, L.street,L.city, L.country,
 	concat_ws (', ',L.city, L.country) as bookCity,
+  concat_ws (', ',NULLIF(concat_ws(' ', L.address, L.street),' '),L.city, L.country) as bookLocation,
 	concat_ws (' ', K.title,K.fname,K.lname) as characterName 
 	from opus O 
 	inner join opus_author OA on O.id = OA.oid 
@@ -194,9 +206,15 @@ router.get("/SearchInBooks",function(req,res){
 	var searchAuthor = req.query.author;
 	var searchLocation = req.query.location;
 	var searchCharacter = req.query.character;
+	var useDB = req.query.db;
 	//
-	var DBquery='SELECT * FROM (SELECT dbjoin.bookID, dbjoin.bookTitle, dbjoin.authorName, dbjoin.bookCity, group_concat(dbjoin.characterName) as Characters FROM '; 
-	DBquery = DBquery.concat(litJoin, ' dbjoin GROUP BY bookID) allFields')
+	if ( ! useDB )
+	{
+		useDB = litJoinOne; // The default
+	}
+
+	var DBquery='SELECT * FROM (SELECT dbjoin.bookID, dbjoin.bookTitle, dbjoin.authorName, dbjoin.bookLocation, group_concat(dbjoin.characterName) as Characters FROM '; 
+	DBquery = DBquery.concat(eval(useDB),' dbjoin GROUP BY bookID ORDER BY bookTitle) allFields')
 	DBquery = DBquery.concat(' WHERE')
 
 	if ( ! (searchTitle || searchAuthor||searchLocation||searchCharacter )) 
@@ -218,7 +236,7 @@ router.get("/SearchInBooks",function(req,res){
 	if ( searchLocation ) 
 	{ 
 		if (addAnd) {DBquery = DBquery.concat(' AND ');}
-		DBquery = DBquery.concat(' bookCity like "%',searchLocation,'%"'); 
+		DBquery = DBquery.concat(' bookLocation like "%',searchLocation,'%"'); 
 		addAnd = true;
 	}
 	if ( searchCharacter ) 
