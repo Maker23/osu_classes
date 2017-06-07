@@ -50,6 +50,23 @@ var litJoinOne = `(SELECT
 	inner join karacter K on K.id = KM.kid 
 	)`;
 
+var litJoinTwo = `(SELECT 
+	M.id as momentID, 
+	REPLACE(M.description,'PRIMARY', 'Primary location for book') as description,
+	M.date,
+	O.title as bookTitle,
+	concat_ws (' ',A.title, A.fname, A.mnames,A.lname) as authorName,
+	concat_ws (' ', K.title,K.fname,K.lname) as characterName,
+	concat_ws (', ',NULLIF(concat_ws(' ', L.address, L.street),' '),L.city, L.country) as location
+	from moment M
+	inner join location L on M.lid = L.id
+	inner join opus O on M.oid = O.id
+	inner join karacter_moment KM on M.id = KM.mid
+	inner join karacter K on K.id = KM.kid
+	inner join opus_author OA on O.id = OA.oid
+	inner join author A on A.id = OA.aid
+	)`;
+
 var app = express();
 var router = express.Router();
 
@@ -72,24 +89,11 @@ router.get("/index.html",function(req,res){
 
 router.get("/lit",function(req,res,next){
 	var context = {};
-
-	// Looking for: title, author, pubyear, location
-	bsgpool.query("SELECT id AS people_id,fname,lname,IFNULL(homeworld,'unknown') as homeworld,IFNULL(age,'unknown') as age FROM bsg_people ORDER BY lname,fname ASC;", 
-	function (err,rows,fields)
-	{
-		if (err) {
-			console.log(err);
-			next(err);
-			return;
-		}
-		context.textresults = JSON.stringify(rows);
-		context.results = JSON.parse(context.textresults);
-		context.history = context["results"].length;
-		res.render(site + "home.handlebars", context);
-		//console.log(context);
-	});
+	res.render(site + "home.handlebars", context);
 });
 
+// This same server runs the BSG database 
+// from an earlier assignment.
 router.get("/bsg",function(req,res,next){
 	var context = {};
 
@@ -108,7 +112,7 @@ router.get("/bsg",function(req,res,next){
 	});
 });
 
-router.get("/delete",function(req,res){
+router.get("/delete",function(req,res){  // TODO DELETE
 	var context = {}
 	var change = null;
 
@@ -135,7 +139,7 @@ router.get("/delete",function(req,res){
 });
 
 
-router.get("/update",function(req,res){
+router.get("/update",function(req,res){  // TODO DELETE
 	var context = {}
 	var change = null;
 
@@ -170,7 +174,7 @@ router.get("/update",function(req,res){
 	}
 });
 
-router.get("/getitem",function(req,res){
+router.get("/getitem",function(req,res){  // TODO DELETE
 	var context = {}
 	var change = null;
 
@@ -196,6 +200,159 @@ router.get("/getitem",function(req,res){
 	}
 });
 
+router.get("/AddOneBook",function(req,res){
+	console.log("In AddOneBook, Req.query: ", req.query);
+
+	var authorFname = '';
+	var authorMnames = '';
+	var authorLname = '';
+	var authorTitle = '';
+	var bookTitle = '';
+	var locCity = '';
+	var locCountry = '';
+
+	if ( req.query.authorFname ) 
+		{ authorFname = authorFname.concat("'",req.query.authorFname, "'"); } else { authorFname = null;}
+	if ( req.query.authorLname ) 
+		{ authorLname = authorLname.concat("'",req.query.authorLname, "'"); } else { authorLname = null;}
+	if ( req.query.authorMnames ) 
+		{ authorMnames = authorMnames.concat("'",req.query.authorMnames, "'"); } else { authorMnames = null;}
+	if ( req.query.authorTitle ) 
+		{ authorTitle = authorTitle.concat("'",req.query.authorTitle, "'"); } else { authorTitle = null;}
+	if ( req.query.title ) 
+		{ bookTitle = bookTitle.concat("'",req.query.title, "'"); } else { bookTitle = null;}
+	if ( req.query.city ) 
+		{ locCity = locCity.concat("'",req.query.city, "'"); } else { locCity = null;}
+	if ( req.query.country ) 
+		{ locCountry = locCountry.concat("'",req.query.country, "'"); } else { locCountry = null;}
+
+
+	console.log("authorFname = ", authorFname);
+	console.log("authorLname = ", authorLname);
+	console.log("authorMnames = ", authorMnames);
+	console.log("authorTitle = ", authorTitle);
+	console.log("bookTitle = ", bookTitle);
+	console.log("locCity = ", locCity);
+	console.log("locCountry = ", locCountry);
+	//Author first, then location, then opus (book), then opus_author and moment <phew!>
+	// ON unique: update
+	var DBcmd_1='';
+	DBcmd_1 = DBcmd_1.concat("INSERT INTO author (fname,mnames,lname,title) VALUE (");
+	DBcmd_1 = DBcmd_1.concat(authorFname,",",authorMnames,",",authorLname,",",authorTitle);
+	DBcmd_1 = DBcmd_1.concat(") ON DUPLICATE KEY UPDATE id=id;");
+	console.log("DBcmd_1 = ", DBcmd_1);
+
+	var DBcmd_2='';
+	DBcmd_2 = DBcmd_2.concat("INSERT INTO location (city,country) VALUE (");
+	DBcmd_2 = DBcmd_2.concat(locCity,",",locCountry);
+	DBcmd_2 = DBcmd_2.concat(") ON DUPLICATE KEY UPDATE id=id;");
+	console.log("DBcmd_2 = ", DBcmd_2);
+
+	var DBcmd_3='';
+	DBcmd_3 = DBcmd_3.concat("INSERT INTO opus (title) VALUE (");
+	DBcmd_3 = DBcmd_3.concat(bookTitle);
+	DBcmd_3 = DBcmd_3.concat(") ON DUPLICATE KEY UPDATE id=id;");
+	console.log("DBcmd_3 = ", DBcmd_3);
+
+	var DBcmd_4='';
+	DBcmd_4 = DBcmd_4.concat("INSERT INTO opus_author (oid,aid) VALUE (");
+	DBcmd_4 = DBcmd_4.concat("(SELECT id FROM opus WHERE title=", bookTitle,"),");
+	// UGH  need to special case NULLS
+	DBcmd_4 = DBcmd_4.concat("(SELECT id FROM author WHERE fname");
+	if ( authorFname == null )
+		{ DBcmd_4 = DBcmd_4.concat("is NULL AND lname"); }
+		else
+		{ DBcmd_4 = DBcmd_4.concat("=", authorFname," AND lname"); }
+	if ( authorLname == null )
+		{ DBcmd_4 = DBcmd_4.concat("is NULL LIMIT 1)"); }
+		else
+		{ DBcmd_4 = DBcmd_4.concat("=", authorLname," LIMIT 1)"); }
+	DBcmd_4 = DBcmd_4.concat(") ON DUPLICATE KEY UPDATE oid=oid;");
+	console.log("DBcmd_4 = ", DBcmd_4);
+
+	var DBcmd_5='';
+	DBcmd_5 = DBcmd_5.concat("INSERT INTO moment (oid,lid,description) VALUE (");
+	DBcmd_5 = DBcmd_5.concat("(SELECT id FROM opus WHERE title=", bookTitle,"),");
+	// UGH  need to special case NULLS  WTF
+	DBcmd_5 = DBcmd_5.concat("(SELECT id FROM location WHERE address is NULL AND street is NULL AND city");
+	if ( locCity == null )
+		{ DBcmd_5 = DBcmd_5.concat("is NULL AND country"); }
+		else
+		{ DBcmd_5 = DBcmd_5.concat("=", locCity," AND country"); }
+	if ( locCountry == null )
+		{ DBcmd_5 = DBcmd_5.concat("is NULL LIMIT 1)"); }
+		else
+		{ DBcmd_5 = DBcmd_5.concat("=", locCountry," LIMIT 1),"); } 
+		// Must use limit 1 here because mysql has a bug that allows multiple null-column 'unique' keys
+	DBcmd_5 = DBcmd_5.concat("'PRIMARY'");
+	DBcmd_5 = DBcmd_5.concat(") ON DUPLICATE KEY UPDATE oid=oid;");
+	console.log("DBcmd_5 = ", DBcmd_5);
+
+	/* ************************************************** */
+
+	var returnString=''
+	litpool.query(DBcmd_1, function (err,rows,fields)
+	{
+		if (err) {
+			console.log('DBcmd_1:',err);
+			res.status(500).send(err);
+			return;
+		}
+		//console.log("DBcmd_1 returned: ", context);
+		//returnString = returnString.concat(context);
+
+		// We must go deeper...
+		litpool.query (DBcmd_2, function(err,rows,fields)
+		{
+			if (err) {
+				console.log('DBcmd_2:',err);
+				res.status(500).send(err);
+				return;
+			}
+			////console.log("DBcmd_2 returned: ", context);
+			//returnString = returnString.concat(context);
+
+			// and deeper...
+			litpool.query (DBcmd_3, function(err,rows,fields)
+			{
+				if (err) {
+					console.log('DBcmd_3:',err);
+					res.status(500).send(err);
+					return;
+				}
+				//console.log("DBcmd_3 returned: ", context);
+				//returnString = returnString.concat(context);
+		
+				// why are we doing this again?
+				litpool.query (DBcmd_4, function(err,rows,fields)
+				{
+					if (err) {
+						console.log('DBcmd_4:',err);
+						res.status(500).send(err);
+						return;
+					}
+					//console.log("DBcmd_4 returned: ", context);
+					//returnString = returnString.concat(context);
+
+					// next time I'm building my db with one giant table
+					litpool.query (DBcmd_5, function(err,rows,fields)
+					{
+						if (err) {
+							console.log('DBcmd_5:',err);
+							res.status(500).send(err);
+							return;
+						}
+						//console.log("DBcmd_5 returned: ", context);
+						//returnString = returnString.concat(context);
+
+						res.status(200).send(returnString)
+					});
+				});
+			});
+		});
+	});
+});
+
 router.get("/SearchInBooks",function(req,res){
 	var context = {}
 	var DBquery = null;
@@ -213,9 +370,23 @@ router.get("/SearchInBooks",function(req,res){
 		useDB = litJoinOne; // The default
 	}
 
-	var DBquery='SELECT * FROM (SELECT dbjoin.bookID, dbjoin.bookTitle, dbjoin.authorName, dbjoin.bookLocation, group_concat(dbjoin.characterName) as Characters FROM '; 
-	DBquery = DBquery.concat(eval(useDB),' dbjoin GROUP BY bookID ORDER BY bookTitle) allFields')
-	DBquery = DBquery.concat(' WHERE')
+	console.log ("useDB is ", useDB);
+	var DBquery='';
+	if ( useDB == 'litJoinOne' ) {
+		console.log ("clause ONE");
+	 	DBquery='SELECT * FROM (SELECT dbjoin.bookID, dbjoin.bookTitle, dbjoin.authorName, dbjoin.bookLocation, group_concat(dbjoin.characterName) as Characters '; 
+		DBquery = DBquery.concat('FROM ', eval(useDB),' dbjoin GROUP BY bookID');
+	}
+	else if ( useDB == 'litJoinTwo' ) {
+		console.log ("clause TWO");
+	 	DBquery='SELECT * FROM (SELECT dbjoin.momentID, dbjoin.location as bookLocation, dbjoin.description, dbjoin.bookTitle, dbjoin.authorName, group_concat(dbjoin.characterName) as Characters '; 
+		DBquery = DBquery.concat('FROM', eval(useDB), ' dbjoin GROUP BY momentID ')
+	}
+	else {
+		console.log ("clause THREE");
+		// an error, really
+	}
+	DBquery = DBquery.concat(' ORDER BY bookTitle) allFields WHERE')
 
 	if ( ! (searchTitle || searchAuthor||searchLocation||searchCharacter )) 
 	{ 
@@ -273,7 +444,7 @@ router.get("/SearchInBooks",function(req,res){
 	}
 });
 
-router.get("/addExercise",function(req,res){
+router.get("/addExercise",function(req,res){  // TODO DELETE
 	var context = {}
 	var change = null;
 
@@ -431,6 +602,7 @@ app.use(bodyParser.json());
 app.engine('handlebars', handlebars.engine);
 app.use("/",router);
 app.use("*",function(req,res){
+	res.status(404);
 	res.sendFile(site + "404.html");
 });
 
