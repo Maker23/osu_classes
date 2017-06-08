@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<link rel="stylesheet" href="/style.css">
+	<title>abrasss@ Homework CS340-400-Spring17</title>
+</head>
+<body onload="createBookMenu(location,['bookMenu1','bookMenu2']);createAuthorMenu(location,['authorMenu1'])">
+
+	<div class="container" style="background-color:orange; color:white">
+       <h1>Literary Location database: Add/Edit</h1>
+       <p> Written by abrasss@ for CS340-400, Spring 2017 </p>
+       <p style="text-align:right"> 
+					<button style="border-color:#FDD835;background-color:blue;color:white;font-size:large" 
+						type="button" id="gotoSearch" name="gotoSearch" value="gotoSearch">
+						Go to search
+			 			</button>
+			 </p>
+  </div> <!-- container -->
+	<p>
+
+	<div class="container">
+		<div class="row" style="margin-top:30px">
+			
+			<!-- Add a book -->
+			<div class="col-sm-8"> 
+				<form id="addBookForm" method="get">
+					<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+						type="button" id="addBookFormVisible" name="addBookFormVisible" value="addBookFormVisible">
+						Add a book
+					</button>
+					<button hidden=true style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+						type="button" id="addBookButton" name="addBookButton" value="addBookButton">
+						Click to add book
+					</button>
+					<button hidden=true style="border-color:#FDD835;background-color:lightgray;color:white;font-size:small" 
+						type="button" id="addBookCancel" name="addBookCancel" value="addBookCancel">
+						cancel
+					</button>
+					<!-- ======= Table for input in the form ====== -->
+					<table id="addBookTable" hidden=true style="width:100%;border:none;margin-top:5px">
+					<tr >
+							<th style="text-align:left;width:10em;font-weight:bold">Title</th>
+							<td style="width:2px;color:red;font-weight:bold">*</td>
+							<td> <input style="width:100%" type="text" name="Title" id="bookAddTitle"></td>
+					<tr>
+						<th style="text-align:left;height:2em;font-weight:bold">Author </th></tr>
+					<tr><td></td>
+						<td></td>
+						<td>  <select style="width:100%" id="authorMenu1"> </select> </td></tr>
+					<!-- BEGIN AuthorFormFields -->	
+					<tr class="authorFormField">
+						<th>First name</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="AuthorFname" id="bookAddAuthorFname"></td>
+					<tr class="authorFormField">
+						<th>Last name</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="AuthorLname" id="bookAddAuthorLname"></td>
+					<tr class="authorFormField">
+						<th>Honorific</th>
+						<td></td>
+						<td><input style="width:80%" type="text" name="AuthorTitle" id="bookAddAuthorTitle">
+							<span style="width:20%;text-align:right"><i>(Sir, Dr., etc)</i></span></td>
+					<tr class="authorFormField">
+						<th>Middle names</th>
+						<td></td>
+						<td><input style="width:100%" type="text" name="AuthorMnames" id="bookAddAuthorMnames"></td>
+					<!-- END AuthorFormFields -->	
+					<tr>
+						<th colspan=3 style="text-align:left;height:3em;font-weight:bold;padding-right:12px">Primary location for the book</th></tr>
+					<tr>
+						<th>City</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="City" id="bookAddCity"></td>
+					<tr>
+						<th>Country</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="Country" id="bookAddCountry"></td>
+					<!-- TODO: Help text on hover -->
+					</table>
+				</form>
+			</div>
+  	</div> <!-- row -->
+
+		<div class="row" style="margin-top:30px">
+			<div class="col-sm-8"> 
+				<form id="addLocationsForm" method="get">
+				<!-- Two visually identical buttons; swap in the one with the eventListener 
+				when the menus are correct -->
+				<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+					type="button" id="doNothingLoc" name="doNothingLoc" value="doNothingLoc">
+					Add locations to book events (jk)
+				</button>
+				<button hidden=true style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+					type="button" id="addLocationButton" name="addLocationButton" value="addLocationButton">
+					Add locations to book events
+				</button>
+				<button hidden=true style="border-color:#FDD835;background-color:lightgray;color:white;font-size:small" 
+					type="button" id="addLocationCancel" name="addLocationCancel" value="addLocationCancel">
+					cancel
+				</button>
+				<p><select id="bookMenu1" style="width:100%"> </select>
+					<!--  
+							TODO:  On select, return a list of locations and characters in that book,
+							and display the form to enter new data
+					-->
+				<table id="addLocationTable" hidden=true style="width:100%;border:none;margin-top:5px">
+					<tr>
+							<!-- this just aligns this form with the one above it, 10em -->
+							<th style="text-align:left;width:10em;font-weight:bold"></th>
+					<tr>
+						<th colspan=3 style="text-align:left;height:3em;font-weight:bold;padding-right:12px">
+						What happened at this location 
+						<br><span style="font-weight:normal">Describe the book event or plot moment, or use "Chapter 3", for example</span></th></tr>
+					<tr>
+						<th>Description</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="description" id="addLocDescription"></td>
+					<tr>
+						<th style="text-align:left;height:2em;font-weight:bold">Location </th></tr>
+					<tr>
+						<th>City</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="city" id="addLocCity"></td>
+					<tr>
+						<th>Country</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="country" id="addLocCountry"></td>
+					<tr>
+						<th>Street name</th>
+						<td></td>
+						<td><input style="width:100%" type="text" name="street" id="addLocStreet"></td>
+					<tr>
+						<th>Street address</th>
+						<td></td>
+						<td><input style="width:100%" type="text" name="address" id="addLocAddress"></td>
+				</table>
+				</form>
+			</div>
+  	</div> <!-- row -->
+
+		<div class="row" style="margin-top:30px">
+			<!-- Add Characters -->
+			<div class="col-sm-8"> 
+				<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+					type="button" id="addCharactersButton" name="addCharactersButton" value="addCharactersButton">
+					Add Characters to a book event
+				</button>
+				<form id="addCharactersForm" method="get">
+					<select id="bookMenu2" style="width:100%"> </select>
+					<select hidden=true id="momentMenu" style="width:100%"> </select>
+					<p hidden=true id="momentCharacterList" style="width:100%"></p>
+
+
+					<table id="addCharacterTable" hidden=true style="width:100%;border:none;margin-top:5px">
+					<tr>
+						<th></th>
+						<td></td>
+						<td id="momentCharacterMenu" hidden=true> </td>
+						<!-- <select hidden=true id="momentCharacterMenu" style="width:100%"> </select></td> -->
+					<tr>
+						<th>First name</th>
+						<td style="color:red;font-weight:bold">*</td>
+						<td><input style="width:100%" type="text" name="CharacterFname" id="characterAddFname"></td>
+					<tr>
+						<th>Last name</th>
+						<td></td>
+						<td><input style="width:100%" type="text" name="CharacterLname" id="characterAddLname"></td>
+					<tr>
+						<th>Honorific</th>
+						<td></td>
+						<td><input style="width:80%" type="text" name="CharacterTitle" id="characterAddTitle">
+							<span style="width:20%;text-align:right"><i>(Sir, Dr., etc)</i></span></td>
+					<tr>
+						<th>Middle names</th>
+						<td></td>
+						<td><input style="width:100%" type="text" name="CharacterMnames" id="characterAddMnames"></td>
+					</table>
+				</form>
+			</div> 
+  	</div> <!-- row -->
+
+
+		<!-- Attach script functions to the various buttons.
+				 Scripts are defined in scrips.js file -->
+ 		<script>
+			document.getElementById('gotoSearch').addEventListener('click', function() {
+				window.location.href = location.origin.concat("/lit");
+			});
+
+			document.getElementById('addBookFormVisible').addEventListener('click', function() {
+				document.getElementById('addBookButton').hidden=false;
+				document.getElementById('addBookTable').hidden=false;
+				document.getElementById('addBookCancel').hidden=false;
+				document.getElementById('addBookFormVisible').hidden=true;
+				},false);
+
+			document.getElementById('addBookCancel').addEventListener('click', function() {
+				document.getElementById('addBookButton').hidden=true;
+				document.getElementById('addBookTable').hidden=true;
+				document.getElementById('addBookCancel').hidden=true;
+				document.getElementById('addBookFormVisible').hidden=false;
+				},false);
+
+			document.getElementById('addBookButton').addEventListener('click', function() {
+				clientAddBooks(
+					location,
+					{
+						'title': document.getElementById('bookAddTitle').value,
+						'authorMenuChoice': document.getElementById('authorMenu1').value,
+						'authorTitle': document.getElementById('bookAddAuthorTitle').value,
+						'authorFname': document.getElementById('bookAddAuthorFname').value,
+						'authorMnames': document.getElementById('bookAddAuthorMnames').value,
+						'authorLname': document.getElementById('bookAddAuthorLname').value,
+						'city': document.getElementById('bookAddCity').value,
+						'country': document.getElementById('bookAddCountry').value
+					}); 
+				}, false);
+
+			document.getElementById('addLocationButton').addEventListener('click', function() {
+				clientAddLocation(
+					location,
+					{
+						'bookMenuChoice': document.getElementById('bookMenu1').value,
+						'locationDescription': document.getElementById('addLocDescription').value,
+						'locationCountry': document.getElementById('addLocCountry').value,
+						'locationCity': document.getElementById('addLocCity').value,
+						'locationStreet': document.getElementById('addLocStreet').value,
+						'locationAddress': document.getElementById('addLocAddress').value,
+					});
+				}, false);
+
+			// NOT YET IMPLEMENTED
+			document.getElementById('addCharactersButton').addEventListener('click', function() {
+				clientListBooks(location,{})},false);
+
+			// document.addEventListener('DOMContentLoaded', function() {
+			document.getElementById('authorMenu1').addEventListener('change', function() { 
+				if ( document.getElementById('authorMenu1').value == "" ) 
+				{ 
+					console.log ("no author chosen from menu");
+					var hide = false;
+				}
+				else { 
+					var hide = true;
+					console.log("author aid is ", document.getElementById('authorMenu1').value);
+				}
+				var myelements = document.getElementsByClassName('authorFormField');
+				//console.log("myelements is ", myelements);
+				for ( var elem in myelements ) {
+					myelements[elem].hidden=hide;
+				};
+			}, false);
+
+			document.getElementById('addLocationCancel').addEventListener('click', function() {
+				document.getElementById('doNothingLoc').hidden=false;
+				document.getElementById('addLocationTable').hidden=true;
+				document.getElementById('addLocationButton').hidden=true;
+				document.getElementById('addLocationCancel').hidden=true;
+			}, false);
+
+			document.getElementById('bookMenu1').addEventListener('change', function() { 
+				if ( document.getElementById('bookMenu1').value == "" ) 
+				{ 
+					document.getElementById('doNothingLoc').hidden=false;
+					document.getElementById('addLocationTable').hidden=true;
+					document.getElementById('addLocationButton').hidden=true;
+					document.getElementById('addLocationCancel').hidden=true;
+				}
+				else 
+				{ 
+					document.getElementById('doNothingLoc').hidden=true;
+					document.getElementById('addLocationTable').hidden=false;
+					document.getElementById('addLocationButton').hidden=false;
+					document.getElementById('addLocationCancel').hidden=false;
+				}
+			}, false);
+
+			document.getElementById('bookMenu2').addEventListener('change', function() { 
+				var oid_m = document.getElementById('bookMenu2').value;
+				console.log("In change menu, oid is ", oid_m);
+				document.getElementById('addCharacterTable').hidden=true;
+				document.getElementById('momentCharacterList').hidden=true;
+				if ( oid_m == "" ) 
+				{ 
+					document.getElementById('momentMenu').hidden=true;
+				}
+				else
+				{
+					createLocationMenu(location,oid_m,['momentMenu']);
+					document.getElementById('momentMenu').hidden=false;
+				}
+			}, false);
+
+			document.getElementById('momentMenu').addEventListener('change', function() { 
+				var oid_m = document.getElementById('bookMenu2').value;
+				var mid_m = document.getElementById('momentMenu').value;
+				console.log("In moment menu, mid is ", mid_m);
+				if ( mid_m == "" ) 
+				{ 
+					document.getElementById('addCharacterTable').hidden=true;
+					document.getElementById('momentCharacterList').hidden=true;
+				}
+				else
+				{
+					createCharacterList(location,mid_m,['momentCharacterList']);
+					createCharacterMenu(location,oid_m,mid_m,['momentCharacterMenu']);
+					document.getElementById('momentCharacterMenu').hidden=false;
+					document.getElementById('addCharacterTable').hidden=false;
+					document.getElementById('momentCharacterList').hidden=false;
+				}
+			}, false);
+
+		</script>
+			
+
+  	</div>  <!-- container -->
+
+
+		<!-- Listing of literary works -->
+			<div class="container" id="ResultsGoHere">
+			</div> <!-- ResultsGoHere. Populated by script.js functions -->
+    <div class="container" id="output">
+		</div> <!-- output -->
+    <hr>
+    <footer>
+      <p>&copy; 2017 abrasss@oregonstate.edu</p>
+    </footer>
+</body>
+</html>
+
+<!-- Got this tidbit off stackoverflow https://stackoverflow.com/questions/18309059/drop-down-menu-text-field-in-one   -->
+<!--
+<div style="position:relative;width:200px;height:25px;border:0;padding:0;margin:0;">
+  <select style="position:absolute;top:0px;left:0px;width:200px; height:25px;line-height:20px;margin:0;padding:0;"
+          onchange="document.getElementById('displayValue').value=this.options[this.selectedIndex].text; document.getElementById('idValue').value=this.options[this.selectedIndex].value;">
+    <option></option>
+    <option value="one">one</option>
+    <option value="two">two</option>
+    <option value="three">three</option>
+  </select>
+  <input type="text" name="displayValue" id="displayValue" 
+         placeholder="add/select a value" onfocus="this.select()"
+         style="position:absolute;top:0px;left:0px;width:183px;width:180px\9;#width:180px;height:23px; height:21px\9;#height:18px;border:1px solid #556;"  >
+  <input name="idValue" id="idValue" type="hidden">
+</div>
+-->

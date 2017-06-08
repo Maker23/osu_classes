@@ -1,6 +1,475 @@
 /* ************************************************ */
+function listAllTables(baseURL, item) {
+	console.log("*** In clientListBooks");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    Item: ", item);
+	//TODO, for debugging
+}
+
+
+/* ******************************************************* */
+function createAuthorMenu(baseURL, elementList) {
+	console.log("*** In clientListAuthors");
+	console.log ("    elementList: ", elementList);
+
+
+  // Send a query to the Database to list all authors
+	var command = 'GetAuthorNames';
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+
+	console.log("Opening get request with:", URL);
+
+	// Open the connection and send the request
+	var connection = new XMLHttpRequest();
+	connection.open("GET", URL);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+
+			// https://stackoverflow.com/questions/8605516/default-select-option-as-blank
+			var menuHTML = '<option selected value=""> -- choose an author or enter a new author below -- </option>'; 
+			var menuElement = '';
+			var response = JSON.parse(connection.responseText);
+			console.log("Request returned:", connection.responseText);
+			console.log("response is:", response);
+  		// Parse the context; build an inner HTML
+			for ( rownum in response.results ) {
+				authorID = response.results[rownum].id;
+				authorName = response.results[rownum].authorName;
+				console.log("found author id:", authorID, "  name:", authorName);
+				menuHTML = menuHTML.concat ('<option value="',authorID,'">',authorName,"</option>\n");
+			}
+			console.log("menuHTML is:", menuHTML);
+
+			elementList.forEach( function (menuName) {
+				menuElement = document.getElementById(menuName);
+			  menuElement.innerHTML = menuHTML;
+			});
+
+  		// Foreach element in elementList: set innerHTML to that
+			//document.getElementById('addBookForm').reset();
+			return;
+		}
+		else {
+			// This Should Never Happen (tm)
+			console.log("Error in createAuthorMenu, ", connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
+function createBookMenu(baseURL, elementList) {
+	console.log("*** In createBookMenu");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    elementList: ", elementList);
+
+
+  // Send a query to the Database to list all book titles
+	var command = 'GetBookTitles';
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+
+	console.log("Opening get request with:", URL);
+
+	// Open the connection and send the request
+	var connection = new XMLHttpRequest();
+	connection.open("GET", URL);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+
+			// https://stackoverflow.com/questions/8605516/default-select-option-as-blank
+			var menuHTML = '<option selected value=""> -- choose a book -- </option>'; 
+			var menuElement = '';
+			var response = JSON.parse(connection.responseText);
+			console.log("Request returned:", connection.responseText);
+			console.log("response is:", response);
+  		// Parse the context; build an inner HTML
+			for ( rownum in response.results ) {
+				bookID = response.results[rownum].id;
+				bookTitle = response.results[rownum].title;
+				console.log("found book id:", bookID, "  title:", bookTitle);
+				menuHTML = menuHTML.concat ('<option value="',bookID,'">',bookTitle,"</option>\n");
+			}
+			console.log("menuHTML is:", menuHTML);
+
+			elementList.forEach( function (menuName) {
+				menuElement = document.getElementById(menuName);
+			  menuElement.innerHTML = menuHTML;
+			});
+
+  		// Foreach element in elementList: set innerHTML to that
+			//document.getElementById('addBookForm').reset();
+			return;
+		}
+		else {
+			// This Should Never Happen (tm)
+			console.log("Error in createBookMenu, ", connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
+function createLocationMenu(baseURL, oid, elementList) {
+	console.log("*** In createLocationMenu");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    oid: ", oid);
+	console.log ("    elementList: ", elementList);
+
+  // Send a query to the Database to list all book titles
+	var command = 'GetLocations';
+	command += '?' + 'oid=' + oid;
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+
+	console.log("Opening get request with:", URL);
+
+	// Open the connection and send the request
+	var connection = new XMLHttpRequest();
+	connection.open("GET", URL);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+
+			// https://stackoverflow.com/questions/8605516/default-select-option-as-blank
+			var menuHTML = '<option selected value=""> -- choose a book event  -- </option>'; 
+			var menuElement = '';
+			var response = JSON.parse(connection.responseText);
+			console.log("Request returned:", connection.responseText);
+			console.log("response is:", response);
+  		// Parse the context; build an inner HTML
+			for ( rownum in response.results ) {
+				momentID = response.results[rownum].mid;
+				momentDescription = response.results[rownum].description;
+				console.log("found moment id:", momentID, "  description:", momentDescription);
+				menuHTML = menuHTML.concat ('<option value="',momentID,'">',momentDescription,"</option>\n");
+			}
+			console.log("menuHTML is:", menuHTML);
+
+			elementList.forEach( function (menuName) {
+				menuElement = document.getElementById(menuName);
+			  menuElement.innerHTML = menuHTML;
+			});
+
+			return;
+		}
+		else {
+			// This Should Never Happen (tm)
+			console.log("Error in createLocationMenu, ", connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
+function createCharacterList(baseURL, mid, elementList) {
+	console.log("*** In createCharacterList");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    mid: ", mid);
+	console.log ("    elementList: ", elementList);
+
+  // Send a query to the Database to list all book titles
+	var command = 'GetCharacters';
+	command += '?' + 'mid=' + mid;
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+
+	console.log("Opening get request with:", URL);
+
+	// Open the connection and send the request
+	var connection = new XMLHttpRequest();
+	connection.open("GET", URL);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+			var listHTML = '';
+			var menuElement = '';
+			var response = JSON.parse(connection.responseText);
+			console.log("Request returned:", connection.responseText);
+			console.log("response is:", response);
+  		// Parse the context; build an inner HTML
+			if ( response.results.length == 0 )
+			{
+				console.log("No characters returned by URL in createCharacterList");
+			}
+			else
+			{
+				listHTML = listHTML.concat ('<b>Characters already in this book event:</b>');
+			}
+			for ( rownum in response.results ) {
+				characterID = response.results[rownum].characterID;
+				characterName = response.results[rownum].characterName;
+				console.log("found character id:", characterID, "  name:", characterName);
+				listHTML = listHTML.concat ('<br>',characterName,'\n');
+			}
+			console.log("listHTML is:", listHTML);
+
+			elementList.forEach( function (menuName) {
+				menuElement = document.getElementById(menuName);
+			  menuElement.innerHTML = listHTML;
+			});
+
+			return;
+		}
+		else {
+			// This Should Never Happen (tm)
+			console.log("Error in createCharacterList, ", connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
+function createCharacterMenu(baseURL, oid, mid, elementList) {
+	console.log("*** In createCharacterMenu");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    oid: ", oid);
+	console.log ("    mid: ", mid);
+	console.log ("    elementList: ", elementList);
+
+  // Send a query to the Database to list all book titles
+	var command = 'GetCharacters';
+	command += '?' + 'oid=' + oid;
+	command += '&' + 'mid=' + mid;
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+
+	console.log("Opening get request with:", URL);
+
+	// Open the connection and send the request
+	var connection = new XMLHttpRequest();
+	connection.open("GET", URL);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+			// https://stackoverflow.com/questions/8605516/default-select-option-as-blank
+			var menuHTML = '';
+			var menuElement = '';
+			var response = JSON.parse(connection.responseText);
+			console.log("Request returned:", connection.responseText);
+			console.log("response is:", response);
+  		// Parse the context; build an inner HTML
+			if ( response.results.length == 0 )
+			{
+				console.log("No characters returned by URL in createCharacterMenu");
+			}
+			else
+			{
+				menuHTML = menuHTML.concat('<select style="width:100%">'); 
+				menuHTML = menuHTML.concat('<option selected value=""> -- choose a character or enter a new one below -- </option>'); 
+			}
+			
+			for ( rownum in response.results ) {
+				characterID = response.results[rownum].characterID;
+				characterName = response.results[rownum].characterName;
+				console.log("found character id:", characterID, "  name:", characterName);
+				menuHTML = menuHTML.concat ('<option value="',characterID,'">',characterName,"</option>\n");
+			}
+			if ( response.results.length != 0 )
+				{menuHTML = menuHTML.concat('</select>');}
+			console.log("menuHTML is:", menuHTML);
+
+			elementList.forEach( function (menuName) {
+				menuElement = document.getElementById(menuName);
+			  menuElement.innerHTML = menuHTML;
+			});
+			return;
+		}
+		else {
+			// This Should Never Happen (tm)
+			console.log("Error in createCharacterMenu, ", connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
+function clientAddBooks(baseURL, item) {
+	console.log("*** In clientAddBooks");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    Item: ", item);
+	// Expect:
+	// title
+	// authorMenuChoice
+	// authorFname
+	// authorLname
+	// authorMnames
+	// authorTitle
+	// city
+	// country
+	if ( item.title == "" || ! item.title ) 
+	{
+		window.alert("Error: Book must have a title");
+		return;
+	}
+	if ( item.authorMenuChoice != "" )
+	{
+		// Retrieve author name from the DB
+	}
+	else if (	( item.authorFname == "" || ! item.authorFname )
+			||( item.authorLname == "" || ! item.authorLname ))
+	{
+		window.alert("Error: Book author must have a first AND last name");
+		return;
+	}
+	if (	( item.city == "" || ! item.city )
+			||( item.country == "" || ! item.country ))
+	{
+		window.alert("Error: Book must have a primary location, city and/or country");
+		return;
+	}
+
+	var command = 'AddOneBook';
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+	var connection = new XMLHttpRequest();
+	var sendString = URL;
+	var firstArg = true;
+	// Construct the query string for the GET request
+	for ( key in item ) {
+		if ( ! firstArg ) {
+			sendString += "&";
+		}
+		else {
+			sendString += "?";
+			firstArg = false;
+		}
+		sendString += key + '=' + item[key];
+	}
+	console.log("Opening get request with:", sendString);
+
+	// Open the connection and send the request
+	connection.open("GET", sendString);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+			//Yay
+			console.log("Request returned:", connection.responseText);
+			console.log("Resetting form... supposedly");
+			document.getElementById('addBookForm').reset();
+			window.alert("'" + item.title + "' added successfully");
+			return;
+		}
+		else {
+			// Don't clear the form
+			console.log("Error, ", connection.responseText);
+			window.alert("Error, " + connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
+function clientAddLocation(baseURL, item) {
+	console.log("*** In clientAddLocation");
+	console.log ("    baseURL: ", baseURL);
+	console.log ("    Item: ", item);
+	// Expect:
+	// bookMenuChoice
+	// locationDescription
+	// locationCountry
+	// locationCity
+	// locationStreet
+	// locationAddress
+	// TODO: ADD CHARACTERS!!!!
+	if ( item.locationDescription == "" || ! item.locationDescription ) 
+	{
+		window.alert("Error: Location must have a description");
+		return;
+	}
+	if ( item.bookMenuChoice == "" || ! item.bookMenuChoice )
+	{
+		window.alert("Error: Location must have a book");
+		return;
+	}
+	if (	( item.locationCity == "" || ! item.locationCity )
+			||( item.locationCountry == "" || ! item.locationCountry ))
+	{
+		window.alert("Error: Location must have a city and country");
+		return;
+	}
+
+	var command = 'AddLocation';
+	var protocol = "http://";
+	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
+	else { hostPort = protocol.concat(baseURL.hostname); }
+	var URL = hostPort.concat('/',command);
+	console.log("URL=", URL);
+	var sendString = URL;
+	var firstArg = true;
+	// Construct the query string for the GET request
+	for ( key in item ) {
+		if ( ! firstArg ) {
+			sendString += "&";
+		}
+		else {
+			sendString += "?";
+			firstArg = false;
+		}
+		sendString += key + '=' + item[key];
+	}
+	console.log("Opening get request with:", sendString);
+
+	// Open the connection and send the request
+	var connection = new XMLHttpRequest();
+	connection.open("GET", sendString);
+	connection.send(null);
+
+	connection.addEventListener('load', function () {
+		console.log("Request status:", connection.status);
+		if ( connection.status < 400 ) {
+			//Yay
+			console.log("Request returned:", connection.responseText);
+			console.log("Resetting form... supposedly");
+			document.getElementById('addBookForm').reset();
+			window.alert("'" + item.title + "' added successfully");
+			return;
+		}
+		else {
+			// Don't clear the form
+			console.log("Error, ", connection.responseText);
+			window.alert("Error, " + connection.responseText);
+			return undefined;
+		}
+	});
+}
+
+/* ******************************************************* */
 function clientSearchBooks(baseURL, item) {
-	console.log ("*** In clientAddExercise");
+	console.log ("*** In clientSearchBooks");
 	console.log ("    baseURL: ", baseURL);
 	//console.log ("    elementID: ", elementID);
 	console.log ("    Item: ", item);
@@ -9,14 +478,22 @@ function clientSearchBooks(baseURL, item) {
 	if (	( item.title == "" || ! item.title )
 			&&( item.author == "" || ! item.author )
 			&&( item.location == "" || ! item.location )
+			&&( item.description == "" || ! item.description )
 			&&( item.character == "" || ! item.character ))
- { 
+	{ 
 		window.alert("Error: No search terms were entered. Enter at least one of Title, Author, Location, or Character. To view the entire database use 'List All Books'");
 		return;
 	}
 
+
 	// Set up the connection to the server
 	var command = 'SearchInBooks';
+	if ( item.location != "" || item.location || item.description !="" || item.description) {
+		item.db = 'litJoinTwo';
+	}
+	else {
+		item.db = 'litJoinOne';
+	}
 	var protocol = "http://";
 	if (baseURL.port) { hostPort = protocol.concat(baseURL.hostname,':', baseURL.port); }
 	else { hostPort = protocol.concat(baseURL.hostname); }
@@ -39,11 +516,6 @@ function clientSearchBooks(baseURL, item) {
 	}
 	console.log("Opening get request with:", sendString);
 
-	// TODO: Break this into two parts.  
-	// 1. Get Book list (or char list, or location list)
-	// 2. Return full results
-	// ... or do that in the SQL query ?
-
 	// Open the connection and send the request
 	connection.open("GET", sendString);
 	connection.send(null);
@@ -54,25 +526,46 @@ function clientSearchBooks(baseURL, item) {
 		if ( connection.status < 400 ) {
 			console.log("Request returned:", connection.responseText);
 		
+			var parentElement = document.getElementById('ResultsGoHere');
+
 			// Get the new item ID from the database update
 			var response = JSON.parse(connection.responseText);
 			console.log ("Response: ", response)
-			if ( ! response.results[0].bookID ){
+			if ( response.results.length == 0) {
+				parentElement.innerHTML = "<h2>No Search results found</h2>";
+				return;
+			}
+
+			if (  ( item.db == 'litJoinOne' && ! response.results[0].bookID ) 
+       	 || ( item.db == 'litJoinTwo' && ! response.results[0].momentID ))
+			{
 				window.alert ("Unknown database error:", connection.responseText);
 				return;
 			}
 			/// TODO TURN this whole thing into a TABLE, then maybe with clickable text?
 			//  Maybe have a 'create table' subroutine....
+			//
 			
-			var ResultColumns = {
-				'bookTitle':'Title',
-				'authorName':'Author',
-				'bookCity':'Primary Location',
-				'Characters':'Characters'
-			};
+			if ( item.db == 'litJoinOne' ){
+				var ResultColumns = {
+					'bookTitle':'Title',
+					'authorName':'Author',
+					'bookLocation':'Primary Location',
+					'Characters':'Characters'
+				};
+			}
+			else if ( item.db == 'litJoinTwo' ){
+				var ResultColumns = {
+					'bookLocation':'Location',
+					'description':'Event Description',
+					'bookTitle':'Book Title',
+					'authorName':'Book Author',
+					'Characters':'Characters appearing'
+				};
+			}
 
-			var parentElement = document.getElementById('ResultsGoHere');
-			parentElement.innerHTML = "";
+	
+			parentElement.innerHTML = "<h2>Search results:<h2>";
 			var table = document.createElement("table");	
 			table.id = 'ResultsTable';
 			parentElement.append(table);

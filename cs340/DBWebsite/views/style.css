@@ -2,6 +2,7 @@ p {
 }
 
 .bordertable, .bordertd, .borderth {
+	text-align: left;
 	border-collapse: collapse;
 	border-style: solid;
 	border-width: thin;
@@ -20,6 +21,11 @@ td, th {
 tbody th {
 	font-weight:normal;
 	font-style:italic;
+}
+
+th {
+	text-align: right;
+	padding-right: 12px;
 }
 
 /*
