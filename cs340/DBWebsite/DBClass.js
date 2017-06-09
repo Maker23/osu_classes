@@ -60,10 +60,10 @@ var litJoinTwo = `(SELECT
 	from moment M
 	inner join location L on M.lid = L.id
 	inner join opus O on M.oid = O.id
-	inner join karacter_moment KM on M.id = KM.mid
-	inner join karacter K on K.id = KM.kid
 	inner join opus_author OA on O.id = OA.oid
 	inner join author A on A.id = OA.aid
+	left join karacter_moment KM on M.id = KM.mid
+	left join karacter K on K.id = KM.kid
 	)`;
 
 var app = express();
@@ -207,6 +207,146 @@ router.get("/AddLocation",function(req,res){
 	});
 });
 
+router.get("/AddOneCharacter",function(req,res){
+	console.log("In AddOneCharacter, Req.query: ", req.query);
+
+	var bookID = null;
+	var momentID = null;
+	var characterID = null;
+	var characterFname = '';
+	var characterLname = '';
+	var characterMnames = '';
+	var characterTitle = '';
+
+	if ( req.query.oid ) 
+		{ bookID = req.query.oid; } 
+	if ( req.query.mid ) 
+		{ momentID = req.query.mid; } 
+	if ( req.query.kid ) 
+		{ characterID = req.query.kid; } 
+	else {
+		if ( req.query.characterFname ) 
+			{ characterFname = characterFname.concat("'",req.query.characterFname, "'"); } else { characterFname = null;}
+		if ( req.query.characterLname ) 
+			{ characterLname = characterLname.concat("'",req.query.characterLname, "'"); } else { characterLname = null;}
+		if ( req.query.characterMnames ) 
+			{ characterMnames = characterMnames.concat("'",req.query.characterMnames, "'"); } else { characterMnames = null;}
+		if ( req.query.characterTitle ) 
+			{ characterTitle = characterTitle.concat("'",req.query.characterTitle, "'"); } else { characterTitle = null;}
+	}
+
+	console.log("bookID = ", bookID);
+	console.log("momentID = ", momentID);
+	console.log("characterID = ", characterID);
+	console.log("characterFname = ", characterFname);
+	console.log("characterLname = ", characterLname);
+	console.log("characterMnames = ", characterMnames);
+	console.log("characterTitle = ", characterTitle);
+	
+	if ( characterID ) {
+		console.log("No new character info.");
+		var DBcmd_1='show tables;'; // SIGH
+	}
+	else {
+		var DBcmd_1='';
+		DBcmd_1 = DBcmd_1.concat("INSERT INTO karacter (Fname,Lname,Mnames,Title) VALUE (");
+		DBcmd_1 = DBcmd_1.concat(characterFname,",",characterLname,",",characterMnames,",",characterTitle);
+		DBcmd_1 = DBcmd_1.concat(") ON DUPLICATE KEY UPDATE id=id;");
+		console.log("DBcmd_1 = ", DBcmd_1);
+	}
+
+	var DBcmd_2='';
+	DBcmd_2 = DBcmd_2.concat("INSERT INTO karacter_moment (kid,mid) VALUE (");
+	if ( characterID ) {
+		DBcmd_2 = DBcmd_2.concat (characterID);
+	}
+	else {
+		DBcmd_2 = DBcmd_2.concat ('(SELECT id from karacter K WHERE K.fname');
+		if ( characterFname == null )
+			{ DBcmd_2 = DBcmd_2.concat("is NULL"); }
+			else
+			{ DBcmd_2 = DBcmd_2.concat("=", characterFname); }
+		if ( characterLname == null )
+			{ DBcmd_2 = DBcmd_2.concat(" AND K.lname is NULL"); }
+			else
+			{ DBcmd_2 = DBcmd_2.concat(" AND K.lname =", characterLname); }
+		if ( characterMnames == null )
+			{ DBcmd_2 = DBcmd_2.concat(" AND K.mnames is NULL"); }
+			else
+			{ DBcmd_2 = DBcmd_2.concat(" AND K.mnames =", characterMnames); }
+		if ( characterTitle == null )
+			{ DBcmd_2 = DBcmd_2.concat(" AND K.title is NULL"); }
+			else
+			{ DBcmd_2 = DBcmd_2.concat(" AND K.title =", characterTitle); }
+		DBcmd_2 = DBcmd_2.concat (')');
+	}
+	DBcmd_2 = DBcmd_2.concat(",",momentID);
+	DBcmd_2 = DBcmd_2.concat(") ON DUPLICATE KEY UPDATE id=id;");
+	console.log("DBcmd_2 = ", DBcmd_2);
+
+	// =============================
+	var DBcmd_3='';
+	DBcmd_3 = DBcmd_3.concat("INSERT INTO karacter_moment (kid,mid) VALUE (");
+
+	if ( characterID ) {
+		DBcmd_3 = DBcmd_3.concat (characterID);
+	}
+	else {
+		DBcmd_3 = DBcmd_3.concat ('(SELECT id from karacter K WHERE K.fname');
+		if ( characterFname == null )
+			{ DBcmd_3 = DBcmd_3.concat("is NULL"); }
+			else
+			{ DBcmd_3 = DBcmd_3.concat("=", characterFname); }
+		if ( characterLname == null )
+			{ DBcmd_3 = DBcmd_3.concat(" AND K.lname is NULL"); }
+			else
+			{ DBcmd_3 = DBcmd_3.concat(" AND K.lname =", characterLname); }
+		if ( characterMnames == null )
+			{ DBcmd_3 = DBcmd_3.concat(" AND K.mnames is NULL"); }
+			else
+			{ DBcmd_3 = DBcmd_3.concat(" AND K.mnames =", characterMnames); }
+		if ( characterTitle == null )
+			{ DBcmd_3 = DBcmd_3.concat(" AND K.title is NULL"); }
+			else
+			{ DBcmd_3 = DBcmd_3.concat(" AND K.title =", characterTitle); }
+		DBcmd_3 = DBcmd_3.concat (')');
+	}
+	DBcmd_3 = DBcmd_3.concat(", (SELECT id FROM moment WHERE oid=",bookID,' AND description="PRIMARY")');
+	DBcmd_3 = DBcmd_3.concat(") ON DUPLICATE KEY UPDATE id=id;");
+	console.log("DBcmd_3 = ", DBcmd_3);
+	// =============================
+
+	var returnString=''
+	litpool.query(DBcmd_1, function (err,rows,fields)
+	{
+		if (err) {
+			console.log('DBcmd_1:',err);
+			res.status(500).send(err);
+			return;
+		}
+
+		// We must go deeper...
+		litpool.query (DBcmd_2, function(err,rows,fields)
+		{
+			if (err) {
+				console.log('DBcmd_2:',err);
+				res.status(500).send(err);
+				return;
+			}
+			
+			litpool.query (DBcmd_3, function(err,rows,fields)
+			{
+				if (err) {
+					console.log('DBcmd_3:',err);
+					res.status(500).send(err);
+					return;
+				}
+			res.status(200).send(returnString)
+			});
+		});
+	});
+});
+
 router.get("/AddOneBook",function(req,res){
 	console.log("In AddOneBook, Req.query: ", req.query);
 
@@ -246,9 +386,9 @@ router.get("/AddOneBook",function(req,res){
 	console.log("locCity = ", locCity);
 	console.log("locCountry = ", locCountry);
 	*/
-	//DB updates: Author first, then location, then opus (book), then opus_author and moment <phew!>
-
-
+	
+	// DB updates: Author first, then location, 
+	// then opus (book), then opus_author and moment
 	if ( authorID ) {
 		console.log("No new author info.");
 		var DBcmd_1='show tables;'; // SIGH
@@ -412,9 +552,41 @@ router.get("/GetTableNames",function(req,res){
 		for ( var item in context.results ) {
 			console.log(context.results[item].table_name);
 		}
-		
 		res.status(200).send(context.results)
-	
+	});
+});
+
+// Returns a list of all tables in the database, for debugging
+
+router.get("/DumpTable",function(req,res){
+
+	if ( ! req.query.table_name || req.query.table_name=="")
+	{
+		console.log('ERROR, no table name set in DumpTable');
+	}
+
+	var context = {}
+	var DBquery = ''
+	DBquery = DBquery.concat('SELECT * FROM ', req.query.table_name);
+
+	console.log ("Running DumpTable");
+	console.log("Query is: ", DBquery);
+
+	litpool.query(DBquery, function (err,rows,fields)
+	{
+		if (err) {
+			//next(err);
+			console.log(err);
+			return;
+		}
+		context.textresults = JSON.stringify(rows);
+		context.results = JSON.parse(context.textresults);
+		console.log("mySQL returned: ", context);
+
+		for ( var item in context.results ) {
+			console.log(context.results[item].table_name);
+		}
+		res.status(200).send(context.results)
 	});
 });
 
@@ -519,7 +691,7 @@ router.get("/GetLocations",function(req,res){
 router.get("/GetCharacters",function(req,res){
 	var context = {};
 	var DBquery = `
-		SELECT K.id as characterID, 
+		SELECT DISTINCT K.id as characterID, 
 		concat_ws(' ',K.title,K.fname,K.mnames,K.lname) as characterName
 		FROM karacter K
 		INNER JOIN karacter_moment KM on K.id = KM.kid`;
@@ -589,7 +761,7 @@ router.get("/SearchInBooks",function(req,res){
 	//
 	if ( ! useDB )
 	{
-		useDB = 'litJoinOne'; // The default
+		useDB = 'litJoinTwo'; // The default
 	}
 	if ( searchDescription )
 	{

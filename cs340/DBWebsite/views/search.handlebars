@@ -55,9 +55,18 @@
 					type="button" id="showTablesButton" name="showTablesButton" value="showTablesButton">
 					Show all data
 				</button>
+				<button hidden=true style="border-color:lightblue;background-color:blue;color:white;font-size:large" 
+					type="button" id="hideTablesButton" name="hideTablesButton" value="hideTablesButton">
+					clear
+				</button>
 				<p style="font-style:italic">Useful for grading and debugging</p>	
 			</div> 
   	</div> <!-- row -->
+		<div class="row" style="margin-top:30px">
+			<!-- List all books -->
+			<div id="ShowTables" class="col-sm-12"> 
+			</div>
+		</div>
 
 <!-- Got this tidbit off stackoverflow https://stackoverflow.com/questions/18309059/drop-down-menu-text-field-in-one   -->
 <!--
@@ -95,7 +104,16 @@
 					}, false);
 
 			document.getElementById('showTablesButton').addEventListener('click', function() {
-				listAllTables(location,{})},false);
+				listAllTables(location,{});
+				document.getElementById('hideTablesButton').hidden=false;
+				},false);
+
+			document.getElementById('hideTablesButton').addEventListener('click', function() {
+				listAllTables(location,{});
+				document.getElementById('ShowTables').innerHTML='';
+				document.getElementById('hideTablesButton').hidden=true;
+
+				},false);
 		</script>
 			
 

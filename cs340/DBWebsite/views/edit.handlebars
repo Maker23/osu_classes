@@ -50,7 +50,7 @@
 					<tr >
 							<th style="text-align:left;width:10em;font-weight:bold">Title</th>
 							<td style="width:2px;color:red;font-weight:bold">*</td>
-							<td> <input style="width:100%" type="text" name="Title" id="bookAddTitle"></td>
+							<td> <input type="text" style="width:100%" name="Title" id="bookAddTitle"></td>
 					<tr>
 						<th style="text-align:left;height:2em;font-weight:bold">Author </th></tr>
 					<tr><td></td>
@@ -96,13 +96,13 @@
 				<form id="addLocationsForm" method="get">
 				<!-- Two visually identical buttons; swap in the one with the eventListener 
 				when the menus are correct -->
-				<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+				<button style="border-width:0px;border-color:#FDD835;background-color:orange;color:white;font-size:large" 
 					type="button" id="doNothingLoc" name="doNothingLoc" value="doNothingLoc">
-					Add locations to book events (jk)
+					Add locations to book events
 				</button>
 				<button hidden=true style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
 					type="button" id="addLocationButton" name="addLocationButton" value="addLocationButton">
-					Add locations to book events
+					Click to add location
 				</button>
 				<button hidden=true style="border-color:#FDD835;background-color:lightgray;color:white;font-size:small" 
 					type="button" id="addLocationCancel" name="addLocationCancel" value="addLocationCancel">
@@ -151,9 +151,17 @@
 		<div class="row" style="margin-top:30px">
 			<!-- Add Characters -->
 			<div class="col-sm-8"> 
-				<button style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
-					type="button" id="addCharactersButton" name="addCharactersButton" value="addCharactersButton">
+				<button style="border-width:0px;border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+					type="button" id="doNothingChar" name="doNothingChar" value="doNothingChar">
 					Add Characters to a book event
+				</button>
+				<button hidden=true style="border-color:#FDD835;background-color:orange;color:white;font-size:large" 
+					type="button" id="addCharacterButton" name="addCharacterButton" value="addCharacterButton">
+					Click to add character
+				</button>
+				<button hidden=true style="border-color:#FDD835;background-color:lightgray;color:white;font-size:small" 
+					type="button" id="addCharacterCancel" name="addCharacterCancel" value="addCharacterCancel">
+						cancel
 				</button>
 				<form id="addCharactersForm" method="get">
 					<select id="bookMenu2" style="width:100%"> </select>
@@ -165,22 +173,22 @@
 					<tr>
 						<th></th>
 						<td></td>
-						<td id="momentCharacterMenu" hidden=true> </td>
-						<!-- <select hidden=true id="momentCharacterMenu" style="width:100%"> </select></td> -->
-					<tr>
+						<td id="momentCharacterMenu" hidden=true> 
+							<select id="CharacterMenu" style="width:100%"> </select></td>
+					<tr class="characterFormField">
 						<th>First name</th>
 						<td style="color:red;font-weight:bold">*</td>
 						<td><input style="width:100%" type="text" name="CharacterFname" id="characterAddFname"></td>
-					<tr>
+					<tr class="characterFormField">
 						<th>Last name</th>
 						<td></td>
 						<td><input style="width:100%" type="text" name="CharacterLname" id="characterAddLname"></td>
-					<tr>
+					<tr class="characterFormField">
 						<th>Honorific</th>
 						<td></td>
 						<td><input style="width:80%" type="text" name="CharacterTitle" id="characterAddTitle">
 							<span style="width:20%;text-align:right"><i>(Sir, Dr., etc)</i></span></td>
-					<tr>
+					<tr class="characterFormField">
 						<th>Middle names</th>
 						<td></td>
 						<td><input style="width:100%" type="text" name="CharacterMnames" id="characterAddMnames"></td>
@@ -224,6 +232,7 @@
 						'city': document.getElementById('bookAddCity').value,
 						'country': document.getElementById('bookAddCountry').value
 					}); 
+					document.getElementById('addBookForm').reset();
 				}, false);
 
 			document.getElementById('addLocationButton').addEventListener('click', function() {
@@ -237,11 +246,45 @@
 						'locationStreet': document.getElementById('addLocStreet').value,
 						'locationAddress': document.getElementById('addLocAddress').value,
 					});
+					// Reset all the fields
+					console.log("Setting locationForm values to default");
+					document.getElementById('addLocDescription').value =  document.getElementById('addLocDescription').defaultValue;
+					document.getElementById('addLocCountry').value =  document.getElementById('addLocCountry').defaultValue;
+					document.getElementById('addLocCity').value =  document.getElementById('addLocCity').defaultValue;
+					document.getElementById('addLocStreet').value =  document.getElementById('addLocStreet').defaultValue;
+					document.getElementById('addLocAddress').value =  document.getElementById('addLocAddress').defaultValue;
 				}, false);
 
 			// NOT YET IMPLEMENTED
-			document.getElementById('addCharactersButton').addEventListener('click', function() {
-				clientListBooks(location,{})},false);
+			document.getElementById('addCharacterButton').addEventListener('click', function() {
+				clientAddCharacter(
+					location,
+					{
+						'oid': document.getElementById('bookMenu2').value,
+						'mid': document.getElementById('momentMenu').value,
+						'kid': document.getElementById('CharacterMenu').value,
+						'characterTitle': document.getElementById('characterAddTitle').value,
+						'characterFname': document.getElementById('characterAddFname').value,
+						'characterMnames': document.getElementById('characterAddMnames').value,
+						'characterLname': document.getElementById('characterAddLname').value,
+					});
+					// Reset all the fields
+					console.log("Setting characterForm values to default");
+					var oid_m = document.getElementById('bookMenu2').value;
+					var mid_m = document.getElementById('momentMenu').value;
+					document.getElementById('characterAddTitle').value =  document.getElementById('characterAddTitle').defaultValue;
+					document.getElementById('characterAddFname').value =  document.getElementById('characterAddFname').defaultValue;
+					document.getElementById('characterAddLname').value =  document.getElementById('characterAddLname').defaultValue;
+					document.getElementById('characterAddMnames').value =  document.getElementById('characterAddMnames').defaultValue;
+
+					createCharacterList(location,mid_m,['momentCharacterList']);
+					createCharacterMenu(location,oid_m,mid_m,['CharacterMenu']);
+
+					var myelements = document.getElementsByClassName('characterFormField');
+					for ( var elem in myelements ) {
+						myelements[elem].hidden=false;
+					}
+				},false);
 
 			// document.addEventListener('DOMContentLoaded', function() {
 			document.getElementById('authorMenu1').addEventListener('change', function() { 
@@ -262,6 +305,7 @@
 			}, false);
 
 			document.getElementById('addLocationCancel').addEventListener('click', function() {
+				document.getElementById('bookMenu1').selectedIndex = 0;
 				document.getElementById('doNothingLoc').hidden=false;
 				document.getElementById('addLocationTable').hidden=true;
 				document.getElementById('addLocationButton').hidden=true;
@@ -301,6 +345,37 @@
 				}
 			}, false);
 
+			document.getElementById('momentCharacterMenu').addEventListener('change', function() { 
+				var kid_m = document.getElementById('CharacterMenu').value;
+				console.log("DEBUG menu kid_m is ", kid_m);
+				if ( kid_m == "" ) 
+				{ 
+					hide=false;
+				}
+				else
+				{
+					hide=true;
+				}
+				var myelements = document.getElementsByClassName('characterFormField');
+				for ( var elem in myelements ) {
+					myelements[elem].hidden=hide;
+				}
+			}, false);
+
+			document.getElementById('addCharacterCancel').addEventListener('click', function() {
+
+
+					document.getElementById('momentMenu').hidden=true;
+					document.getElementById('momentMenu').selectedIndex = 0;
+					document.getElementById('bookMenu2').selectedIndex = 0;
+
+					document.getElementById('addCharacterTable').hidden=true;
+					document.getElementById('momentCharacterList').hidden=true;
+					document.getElementById('doNothingChar').hidden=false;
+					document.getElementById('addCharacterButton').hidden=true;
+					document.getElementById('addCharacterCancel').hidden=true;
+				},false);
+
 			document.getElementById('momentMenu').addEventListener('change', function() { 
 				var oid_m = document.getElementById('bookMenu2').value;
 				var mid_m = document.getElementById('momentMenu').value;
@@ -309,14 +384,20 @@
 				{ 
 					document.getElementById('addCharacterTable').hidden=true;
 					document.getElementById('momentCharacterList').hidden=true;
+					document.getElementById('doNothingChar').hidden=false;
+					document.getElementById('addCharacterButton').hidden=true;
+					document.getElementById('addCharacterCancel').hidden=true;
 				}
 				else
 				{
 					createCharacterList(location,mid_m,['momentCharacterList']);
-					createCharacterMenu(location,oid_m,mid_m,['momentCharacterMenu']);
+					createCharacterMenu(location,oid_m,mid_m,['CharacterMenu']);
 					document.getElementById('momentCharacterMenu').hidden=false;
 					document.getElementById('addCharacterTable').hidden=false;
 					document.getElementById('momentCharacterList').hidden=false;
+					document.getElementById('doNothingChar').hidden=true;
+					document.getElementById('addCharacterButton').hidden=false;
+					document.getElementById('addCharacterCancel').hidden=false;
 				}
 			}, false);
 
