@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script src="script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<title>abrasss@ Homework Assignment: Exercise website with database, CS290-400-W17</title>
+</head>
+<body>
+
+	<div class="container" style="background-color:blue; color:white">
+       <h1>Exercise tracking database</h1>
+       <p>
+			Written for CS290-400, W17
+			</p>
+  </div>
+	<p>
+
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-2"><strong> Exercise</strong></div>
+        <div class="col-sm-2"><strong> reps </strong></div>
+				<div class="col-sm-2"><strong> weight </strong></div>
+        <div class="col-sm-2"><strong> Date </strong></div>
+        <div class="col-sm-4"><strong>Kilos?</strong> </div>
+			</div> <!-- row -->
+			<div class="row">
+				<form sytle="background-color:gray" method="post">
+					<fieldset>
+						<input class="col-sm-2" type="text" name="exercise" id="exerciseEntered">
+						<input class="col-sm-2" type="text" name="reps" id="repsEntered">
+						<input class="col-sm-2" type="text" name="weight" id="weightEntered">
+						<input class="col-sm-2" type="text" name="date" id="dateEntered">
+        	<div class="col-sm-4"> 
+						<input type="radio" name="lbs" value="1" id="lbsEntered" style="margin-right:30px">
+						<input type="submit" id="formSubmit" value="Add Exercise">
+					</div>
+					</fieldset>
+				</form>
+			</div>
+		</div>
+    <div class="container">
+      <div class="row">
+        <h2>Your exercise history</h2>
+			</div>
+
+
+			{{#each results}}
+      <div class="row">
+        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.name}} </div>
+        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.reps}} </div>
+				<div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.weight}}
+			{{#if this.lbs}}
+			lbs
+			{{else}}
+			kg
+			{{/if}}
+			</div>
+        <div class="col-sm-2" style="border-style:solid;border-width:thin"> {{this.date}}</div>
+        <div class="col-sm-4"> <input type="button" id="EditButton" value="Edit"><input type="button" id="RemoveButton" value="Remove"></div>
+			</div> <!-- row -->
+			{{/each}}
+    </div> <!-- /container -->
+
+      <hr>
+
+      <footer>
+        <p>&copy; 2017 abrasss@oregonstate.edu</p>
+      </footer>
+</body>
+</html>

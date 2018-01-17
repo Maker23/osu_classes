@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<title>abrasss@ Homework CS340-400-Spring17</title>
+</head>
+<body>
+
+	<div class="container" style="background-color:blue; color:white">
+       <h1>Book search results</h1>
+  </div>
+	<p>
+
+		<!-- Top section: add a new exercise -->
+    <div class="container"> 
+    </div>
+
+
+		<!-- Listing of BSG people -->
+    <div class="container" id="book_search_results"> <!-- book_search_results -->
+      <div class="row">
+        <h2>Book search results</h2>
+			</div>
+			
+			<div id = "book_list"> <!-- book_list -->
+      <div class="row"> <!-- header row -->
+        	<div class="col-sm-2" style="font-weight:bold"> Title</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Author</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Pub.date</div>
+        	<div class="col-sm-2" style="font-weight:bold"> Primary Location</div>
+			</div> <!-- /header row -->
+
+			{{#each results}}
+
+      	<div class="row" id="bookRow{{this.book_id}}"> <!-- bookRow -->
+					<div id="book_dataFields{{this.book_id}}"> <!-- dataFields -->
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_title{{this.book_id}}">{{this.title}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_author{{this.book_id}}"> {{this.author}} </div>
+        	<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_pubdate{{this.book_id}}"> {{this.pubdate}} </div>
+					<div class="col-sm-2" style="border-style:solid;border-width:thin" id="book_primaryloc{{this.book_id}}"> {{this.primaryloc}} </div>
+					</div><!-- /dataFields -->
+				</div> <!-- /bookRow -->
+			{{/each}}
+
+			</div> <!-- /book_list -->
+
+    </div> <!-- /book_search_results -->
+
+    <hr>
+    <footer>
+      <p>&copy; 2017 abrasss@oregonstate.edu</p>
+    </footer>
+</body>
+</html>

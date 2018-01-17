@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/script.js"></script>
+
+	<link rel="stylesheet" href="/bootstrap.min.css">
+	<link rel="stylesheet" href="/style.css">
+	<title>abrasss@ Homework CS340-400-Spring17</title>
+</head>
+<body>
+
+	<div class="container" style="background-color:blue; color:white">
+       <h1>Literary Location database search</h1>
+       <p> Written by abrasss@  for CS340-400, Spring 2017 </p>
+       <p style="text-align:right"> 
+					<button style="border-color:lightblue;background-color:orange;color:white;font-size:large" 
+						type="button" id="gotoEdit" name="gotoEdit" value="gotoEdit">
+						Go to edit 
+			 			</button>
+			 </p>
+  </div> <!-- container -->
+	<p>
+
+	<div class="container">
+		<div class="row" style="margin-top:30px">
+			
+			<!-- Search the book database -->
+			<div class="col-sm-8"> 
+				<form style="width:100%" id="searchBookForm" method="get">
+					<button style="border-color:lightblue;background-color:blue;color:white;font-size:large" 
+						type="button" id="searchBookButton" name="searchBookButton" value="searchBookButton">
+						Search in books
+					</button>
+					<table style="width:100%;border:none;margin-top:5px">
+					<tr><th>Title</th><td> <input style="width:95%" type="text" name="Title" id="bookSearchTitle"></td>
+					<tr><th>Author </th><td><input style="width:95%" type="text" name="Author" id="bookSearchAuthor"></td>
+					<tr><th>Location </th><td><input style="width:95%" type="text" name="Location" id="bookSearchLocation"></td>
+					<tr><th style="padding-right:12px">Character </th><td><input style="width:95%" type="text" name="Character" id="bookSearchCharacter"></td>
+					<tr><th style="padding-right:12px">Description </th><td><input style="width:95%" type="text" name="Description" id="bookSearchDescription"></td>
+					</table>
+				</form>
+			</div>
+  	</div> <!-- row -->
+
+		<div class="row" style="margin-top:30px">
+			<!-- List all books -->
+			<div class="col-sm-4"> 
+				<button style="border-color:lightblue;background-color:blue;color:white;font-size:large" 
+					type="button" id="showTablesButton" name="showTablesButton" value="showTablesButton">
+					Show all data
+				</button>
+				<button hidden=true style="border-color:lightblue;background-color:blue;color:white;font-size:large" 
+					type="button" id="hideTablesButton" name="hideTablesButton" value="hideTablesButton">
+					clear
+				</button>
+				<p style="font-style:italic">Useful for grading and debugging</p>	
+			</div> 
+  	</div> <!-- row -->
+		<div class="row" style="margin-top:30px">
+			<!-- List all books -->
+			<div id="ShowTables" class="col-sm-12"> 
+			</div>
+		</div>
+
+<!-- Got this tidbit off stackoverflow https://stackoverflow.com/questions/18309059/drop-down-menu-text-field-in-one   -->
+<!--
+<div style="position:relative;width:200px;height:25px;border:0;padding:0;margin:0;">
+  <select style="position:absolute;top:0px;left:0px;width:200px; height:25px;line-height:20px;margin:0;padding:0;"
+          onchange="document.getElementById('displayValue').value=this.options[this.selectedIndex].text; document.getElementById('idValue').value=this.options[this.selectedIndex].value;">
+    <option></option>
+    <option value="one">one</option>
+    <option value="two">two</option>
+    <option value="three">three</option>
+  </select>
+  <input type="text" name="displayValue" id="displayValue" 
+         placeholder="add/select a value" onfocus="this.select()"
+         style="position:absolute;top:0px;left:0px;width:183px;width:180px\9;#width:180px;height:23px; height:21px\9;#height:18px;border:1px solid #556;"  >
+  <input name="idValue" id="idValue" type="hidden">
+</div>
+-->
+
+		<!-- Attach script functions to the various buttons.
+				 Scripts are defined in scrips.js file -->
+ 		<script>
+
+			document.getElementById('gotoEdit').addEventListener('click', function() {
+				window.location.href = location.origin.concat("/lit/edit");
+			});
+			document.getElementById('searchBookButton').addEventListener('click', function() {
+				clientSearchBooks(
+					location,
+					{
+						'title': document.getElementById('bookSearchTitle').value,
+						'author': document.getElementById('bookSearchAuthor').value,
+						'location': document.getElementById('bookSearchLocation').value,
+						'description': document.getElementById('bookSearchDescription').value,
+						'character': document.getElementById('bookSearchCharacter').value})
+					}, false);
+
+			document.getElementById('showTablesButton').addEventListener('click', function() {
+				listAllTables(location,{});
+				document.getElementById('hideTablesButton').hidden=false;
+				},false);
+
+			document.getElementById('hideTablesButton').addEventListener('click', function() {
+				listAllTables(location,{});
+				document.getElementById('ShowTables').innerHTML='';
+				document.getElementById('hideTablesButton').hidden=true;
+
+				},false);
+		</script>
+			
+
+  	</div>  <!-- container -->
+
+
+		<!-- Listing of literary works -->
+			<div class="container" id="ResultsGoHere">
+			</div> <!-- ResultsGoHere. Populated by script.js functions -->
+    <div class="container" id="output">
+		</div> <!-- output -->
+    <hr>
+    <footer>
+      <p>&copy; 2017 abrasss@oregonstate.edu</p>
+    </footer>
+</body>
+</html>

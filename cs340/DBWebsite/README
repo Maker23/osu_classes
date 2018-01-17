@@ -1,0 +1,9 @@
+To start the How To server:
+	(cd Website; node Server.js)
+
+For debugging and easy restarts:
+	(cd Website; node inspect Website/Server.js)
+
+To run forever:
+  (cd Website; ./node_modules/forever/bin/forever start Server.js)
+
